@@ -444,10 +444,12 @@ function landscapeSVG(cls) {
 }
 function pineTree(x, baseY, scale, color) {
   const g = el('g', { transform: `translate(${x},${baseY}) scale(${scale})` });
-  g.appendChild(el('rect', { x: -4, y: -14, width: 8, height: 16, fill: '#3b2a1a' }));
-  [[-20, 34], [-38, 27], [-56, 19]].forEach(([y, w]) => {
-    g.appendChild(el('polygon', { points: `0,${y - 20} ${-w / 2},${y} ${w / 2},${y}`, fill: color }));
-  });
+  g.appendChild(el('path', { d: 'M-4,2 C-3,-18 -3,-42 0,-69 C3,-42 3,-18 4,2 Z', fill: '#3b2a1a' }));
+  g.appendChild(el('path', {
+    d: 'M0,-78 C-8,-69 -7,-62 -17,-55 C-10,-56 -8,-52 -5,-50 C-18,-45 -19,-36 -31,-29 C-22,-30 -18,-26 -14,-23 C-31,-18 -34,-8 -43,-1 C-30,-3 -24,0 -18,4 L18,4 C24,0 30,-3 43,-1 C34,-8 31,-18 14,-23 C18,-26 22,-30 31,-29 C19,-36 18,-45 5,-50 C8,-52 10,-56 17,-55 C7,-62 8,-69 0,-78 Z',
+    fill: color
+  }));
+  g.appendChild(el('path', { d: 'M-22,-18 C-11,-14 11,-14 24,-20 M-14,-39 C-6,-36 8,-36 16,-41', stroke: 'rgba(255,255,255,0.08)', 'stroke-width': 2, fill: 'none' }));
   return g;
 }
 function oakTree(x, baseY, scale, trunkColor, canopyColor) {
@@ -525,7 +527,7 @@ function buildLandscape(themeId, container) {
   } else if (themeId === 'dragon') {
     back.appendChild(el('ellipse', { cx: 760, cy: 90, rx: 160, ry: 90, fill: '#ff7a3d', opacity: 0.14 }));
     back.appendChild(mountainRange(w, h, 7, 'var(--felt-dark)', 0.4));
-    front.appendChild(mountainRange(w, h * 0.85, 9, 'var(--felt-dark)', 0.95));
+    front.appendChild(mountainRange(w, h, 9, 'var(--felt-dark)', 0.95));
     front.appendChild(el('path', {
       d: 'M700,120 L730,90 L715,140 L750,105 L735,150', stroke: '#FF9A5A', 'stroke-width': 3, fill: 'none', opacity: 0.85
     }));
