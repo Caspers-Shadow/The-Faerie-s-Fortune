@@ -1,6 +1,4 @@
-/* =========================================================================
-   LOGIN / SIGN UP
-   ========================================================================= */
+// login / sign up
 
 const statusEl = document.getElementById('authStatus');
 let busy = false;
@@ -8,7 +6,7 @@ let busy = false;
 (async function initLoginPage() {
   if (!CLOUD_ENABLED) {
     document.getElementById('authCard').innerHTML =
-      '<p class="party-hint">Accounts aren\'t configured yet. See SETUP.md to connect a free Supabase project - until then, this page can\'t sign anyone in.</p>';
+      '<p class="party-hint">Accounts aren\'t configured yet. See SETUP.md to connect a free Supabase project, this page can\'t sign anyone in until then.</p>';
     return;
   }
   try {
@@ -22,7 +20,7 @@ let busy = false;
     }
   } catch (err) {
     console.error(err);
-    // If the check itself fails for any reason, do nothing - the login
+    // if the check fails for any reason, do nothing, the login
     // form underneath is the safe default either way.
   }
 })();
