@@ -177,7 +177,6 @@ async function recordRoll(cfg, display, isCrit, isFail) {
   const { error } = await supabaseClient.from('log_entries').insert({
     party_id: partyId, session_id: currentSessionId, user_id: me.id,
     type: 'roll', die: cfg.label, display, crit: !!isCrit, fail: !!isFail,
-    private: false,
   });
   if (error) {
     console.error('Could not save roll:', error);
@@ -268,8 +267,28 @@ function renderNotebookPage() {
   nextBtn.disabled = pageIndex === sessionsList.length - 1;
 }
 
-document.getElementById('pagePrev').addEventListener('click', () => { if (pageIndex > 0) { pageIndex--; renderNotebookPage(); } });
-document.getElementById('pageNext').addEventListener('click', () => { if (pageIndex < sessionsList.length - 1) { pageIndex++; renderNotebookPage(); } });
+let pageTurning = false;
+function turnNotebookPage(direction) {
+  if (pageTurning) return;
+  const nextIndex = pageIndex + direction;
+  if (nextIndex < 0 || nextIndex >= sessionsList.length) return;
+  pageTurning = true;
+  const pageEl = document.getElementById('notebookPage');
+  pageEl.classList.add(direction > 0 ? 'turning-next' : 'turning-prev');
+  setTimeout(() => {
+    pageIndex = nextIndex;
+    renderNotebookPage();
+    pageEl.classList.remove('turning-next', 'turning-prev');
+    pageEl.classList.add(direction > 0 ? 'arriving-next' : 'arriving-prev');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      pageEl.classList.remove('arriving-next', 'arriving-prev');
+      setTimeout(() => { pageTurning = false; }, 340);
+    }));
+  }, 340);
+}
+
+document.getElementById('pagePrev').addEventListener('click', () => turnNotebookPage(-1));
+document.getElementById('pageNext').addEventListener('click', () => turnNotebookPage(1));
 
 document.getElementById('noteBtn').addEventListener('click', async () => {
   const input = document.getElementById('noteInput');
@@ -277,7 +296,7 @@ document.getElementById('noteBtn').addEventListener('click', async () => {
   if (!text || !currentSessionId) return;
   input.value = '';
   await supabaseClient.from('log_entries').insert({
-    party_id: partyId, session_id: currentSessionId, user_id: me.id, type: 'note', note_text: text, private: true,
+    party_id: partyId, session_id: currentSessionId, user_id: me.id, type: 'note', note_text: text,
   });
   await refreshNotebook();
 });
