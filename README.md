@@ -52,6 +52,9 @@ drop table if exists party_members cascade;
 drop table if exists parties cascade;
 drop table if exists profiles cascade;
 drop function if exists public.handle_new_user cascade;
+drop function if exists public.is_party_dm cascade;
+drop function if exists public.is_party_member cascade;
+drop function if exists public.join_party_by_code cascade;
 
 -- one row per signed-up person
 create table profiles (
@@ -102,16 +105,54 @@ create table party_members (
 );
 alter table party_members enable row level security;
 
+-- Helper functions used by the policies below. A policy on `parties` that
+-- directly queried `party_members` (and vice versa) causes Postgres to
+-- recurse infinitely, since checking one table's visibility re-triggers
+-- the other's. These run with elevated privileges internally, bypassing
+-- RLS on the table they check, which breaks that cycle.
+create or replace function public.is_party_dm(p_party_id uuid)
+returns boolean language sql security definer stable as $$
+  select exists (select 1 from parties where id = p_party_id and dm_id = auth.uid());
+$$;
+create or replace function public.is_party_member(p_party_id uuid)
+returns boolean language sql security definer stable as $$
+  select exists (select 1 from party_members where party_id = p_party_id and user_id = auth.uid());
+$$;
+grant execute on function public.is_party_dm(uuid) to authenticated;
+grant execute on function public.is_party_member(uuid) to authenticated;
+
 create policy "Members can see their own memberships"
   on party_members for select using (
-    auth.uid() = user_id or party_id in (select id from parties where dm_id = auth.uid())
+    auth.uid() = user_id or public.is_party_dm(party_id)
   );
 create policy "Users can join a party as themselves"
   on party_members for insert with check (auth.uid() = user_id);
 
+-- Looking up a party by invite code has to work for someone who isn't a
+-- member yet - but the SELECT policy above only shows parties to existing
+-- members/the DM. This function does the lookup-and-join as one guarded
+-- step instead of opening up the whole parties table to browsing.
+create or replace function public.join_party_by_code(p_code text)
+returns table (id uuid, name text)
+language plpgsql security definer as $$
+declare
+  v_party record;
+begin
+  select p.id, p.name into v_party from parties p where p.invite_code = upper(p_code);
+  if v_party.id is null then
+    raise exception 'No party found with that code';
+  end if;
+  insert into party_members (party_id, user_id, role)
+  values (v_party.id, auth.uid(), 'player')
+  on conflict (party_id, user_id) do nothing;
+  return query select v_party.id, v_party.name;
+end;
+$$;
+grant execute on function public.join_party_by_code(text) to authenticated;
+
 create policy "Members can view their parties"
   on parties for select using (
-    dm_id = auth.uid() or id in (select party_id from party_members where user_id = auth.uid())
+    dm_id = auth.uid() or public.is_party_member(id)
   );
 create policy "Any signed-in user can create a party"
   on parties for insert with check (auth.uid() = dm_id);
@@ -128,11 +169,10 @@ create table sessions (
 alter table sessions enable row level security;
 create policy "Members can view sessions"
   on sessions for select using (
-    party_id in (select id from parties where dm_id = auth.uid())
-    or party_id in (select party_id from party_members where user_id = auth.uid())
+    public.is_party_dm(party_id) or public.is_party_member(party_id)
   );
 create policy "DM can create sessions"
-  on sessions for insert with check (party_id in (select id from parties where dm_id = auth.uid()));
+  on sessions for insert with check (public.is_party_dm(party_id));
 
 -- rolls, notes, and session dividers, all in one shared log
 create table log_entries (
@@ -146,26 +186,26 @@ create table log_entries (
   crit boolean default false,
   fail boolean default false,
   note_text text,
+  private boolean not null default false,
   created_at timestamptz not null default now()
 );
 alter table log_entries enable row level security;
 create policy "Members can view log entries"
   on log_entries for select using (
-    party_id in (select id from parties where dm_id = auth.uid())
-    or party_id in (select party_id from party_members where user_id = auth.uid())
+    (public.is_party_dm(party_id) or public.is_party_member(party_id))
+    and (private = false or user_id = auth.uid())
   );
 create policy "Members can add log entries"
   on log_entries for insert with check (
-    user_id = auth.uid() and (
-      party_id in (select id from parties where dm_id = auth.uid())
-      or party_id in (select party_id from party_members where user_id = auth.uid())
-    )
+    user_id = auth.uid() and (public.is_party_dm(party_id) or public.is_party_member(party_id))
   );
 ```
 
 This creates five tables and turns on row-level security everywhere, so
-the database itself - not just the site's code - enforces that people can
-only see parties they actually belong to.
+the database itself, not just the site's code, enforces who can see what:
+who belongs to a party, and within a party, whose rolls and notes are
+private. DM rolls and every note are private by default, visible only to
+whoever made them.
 
 ### Recommended: turn off email confirmation while testing
 **Authentication → Providers → Email**, toggle off **"Confirm email"** so
