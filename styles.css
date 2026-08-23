@@ -1575,3 +1575,162 @@
     .party-heading { margin-left: -8px; margin-right: -8px; }
     .landscape-layer { min-height: 210px; }
   }
+
+  /* ========================================================================
+     V11 - genuine Three.js book and a no-empty-scroll desktop table
+     ======================================================================== */
+  @media (min-width: 761px) {
+    .room-layout,
+    .play-mat { height: calc(100vh - 58px); min-height: 620px; }
+    .play-mat { overflow: hidden; }
+    .play-mat .stage {
+      display: grid;
+      grid-template-columns: minmax(430px, 1fr) minmax(270px, 330px);
+      grid-template-areas:
+        'heading heading'
+        'rolling history';
+      align-content: start;
+      column-gap: clamp(24px, 4vw, 56px);
+      row-gap: 8px;
+      height: 100%;
+      max-width: 1120px;
+      padding-top: 24px;
+      padding-bottom: 22px;
+    }
+    .party-heading { grid-area: heading; margin-bottom: 4px; }
+    .roll-workspace { grid-area: rolling; width: 100%; margin: 0; gap: 20px; }
+    .tray-wrap { width: min(42vh, 370px); }
+    .ledger {
+      grid-area: history;
+      align-self: start;
+      width: 100%;
+      max-height: min(55vh, 470px);
+      margin: 56px 0 0;
+    }
+    #log { max-height: min(45vh, 380px); }
+  }
+
+  .play-mat .book-button,
+  .play-mat .menu-btn.book-button {
+    top: auto;
+    right: 12px;
+    bottom: 8px;
+    width: 210px;
+    height: 150px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    transform: rotate(4deg);
+    overflow: visible;
+  }
+  .play-mat .book-button::before { display: none; }
+  .play-mat .book-button:hover { transform: rotate(1deg) translateY(-5px) scale(1.03); box-shadow: none; }
+  #bookClosedScene { display: block; width: 100%; height: 100%; }
+
+  .book-stage { display: block; width: 100%; height: 100%; padding: 0; perspective: none; }
+  .book-volume,
+  .table-notebook.open .book-volume {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform: none;
+  }
+  .book-fullscreen-canvas {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .book-page-block {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: block;
+    padding: 0;
+    color: #ead7ad;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    pointer-events: none;
+  }
+  .book-page-block::before { display: none; }
+  .book-page-block .drawer-head {
+    position: absolute;
+    top: 20px;
+    right: 24px;
+    left: 24px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: auto;
+  }
+  .book-page-block .drawer-title { color: #e7cf9d; text-shadow: 0 2px 5px #120a07; }
+  .book-page-block .drawer-close { color: #e7cf9d; font-size: 25px; }
+  .book-page-block .drawer-nav {
+    position: absolute;
+    top: 58px;
+    left: 24px;
+    display: flex;
+    gap: 22px;
+    pointer-events: auto;
+  }
+  .book-page-block .drawer-nav a,
+  .book-page-block .drawer-nav button { color: #d9c18f; text-shadow: 0 2px 4px #120a07; }
+  .book-page-block .drawer-divider { display: none; }
+  .book-page-block .notebook { display: block; }
+  .book-page-block .notebook-page {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .book-page-block .party-form {
+    position: absolute;
+    bottom: 22px;
+    left: 50%;
+    display: flex;
+    width: min(48vw, 620px);
+    margin: 0;
+    padding: 10px 14px;
+    transform: translateX(-50%);
+    background: rgba(24,13,9,.72);
+    border: 1px solid rgba(207,168,91,.48);
+    pointer-events: auto;
+  }
+  .book-page-block .party-form input[type="text"] { color: #f0dfba; background: transparent; }
+  .book-page-block .party-form input[type="text"]::placeholder { color: #bda880; }
+  .book-page-block .die-btn { color: #e7cf9d; }
+  .book-page-block .notebook-nav {
+    position: absolute;
+    right: 50%;
+    bottom: 84px;
+    left: 50%;
+    display: flex;
+    justify-content: space-between;
+    width: min(70vw, 900px);
+    margin: 0;
+    transform: translateX(-50%);
+    pointer-events: auto;
+  }
+  .book-page-block .link-btn,
+  .book-page-block .page-indicator { color: #e7cf9d; text-shadow: 0 2px 4px #120a07; }
+
+  @media (max-width: 1040px) and (min-width: 761px) {
+    .play-mat .stage { grid-template-columns: minmax(390px,1fr) 270px; padding-right: 34px; }
+    .play-mat .book-button,
+    .play-mat .menu-btn.book-button { width: 170px; height: 122px; right: 4px; bottom: 2px; }
+  }
+
+  @media (max-width: 760px) {
+    .play-mat { min-height: calc(100vh - 58px); overflow: hidden; padding-bottom: 118px; }
+    .play-mat .book-button,
+    .play-mat .menu-btn.book-button { width: 150px; height: 106px; right: 8px; bottom: 5px; }
+    .book-page-block .party-form { width: calc(100vw - 28px); bottom: 16px; }
+    .book-page-block .notebook-nav { width: calc(100vw - 34px); bottom: 78px; }
+    .book-page-block .drawer-title { max-width: 65vw; font-size: 13px; }
+  }
