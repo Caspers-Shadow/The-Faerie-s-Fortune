@@ -199,15 +199,19 @@ const drawerOverlay = document.getElementById('drawerOverlay');
 function openDrawer() {
   drawer.classList.add('open'); drawerOverlay.classList.add('open'); drawerOverlay.hidden = false;
   menuBtn.setAttribute('aria-expanded', 'true'); drawer.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('book-open');
+  refreshNotebook();
 }
 function closeDrawer() {
   drawer.classList.remove('open'); drawerOverlay.classList.remove('open');
   menuBtn.setAttribute('aria-expanded', 'false'); drawer.setAttribute('aria-hidden', 'true');
-  setTimeout(() => { drawerOverlay.hidden = true; }, 300);
+  document.body.classList.remove('book-open');
+  setTimeout(() => { drawerOverlay.hidden = true; }, 700);
 }
 menuBtn.addEventListener('click', () => (drawer.classList.contains('open') ? closeDrawer() : openDrawer()));
 document.getElementById('drawerClose').addEventListener('click', closeDrawer);
 drawerOverlay.addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer(); });
 document.getElementById('drawerLogout').addEventListener('click', signOutAndRedirect);
 
 // one session per page, flip with Prev/Next. new notes jump
