@@ -6,9 +6,10 @@
   if (!closedCanvas || !fullCanvas || typeof THREE === 'undefined') return;
 
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const leather = 0x4b2419;
+  const trigger = document.getElementById('hamburgerBtn');
+  const leather = 0x733d28;
   const leatherDark = 0x24100c;
-  const gold = 0xc59a4b;
+  const gold = 0xe0b65f;
   const paper = 0xe8d5a7;
 
   function rendererFor(canvas, alpha = true) {
@@ -29,7 +30,7 @@
   }
 
   function coverMaterial() {
-    return new THREE.MeshStandardMaterial({ color: leather, roughness: .72, metalness: .08 });
+    return new THREE.MeshStandardMaterial({ color: leather, emissive: 0x1a0805, emissiveIntensity: .22, roughness: .66, metalness: .1 });
   }
   function goldMaterial() {
     return new THREE.MeshStandardMaterial({ color: gold, roughness: .32, metalness: .78 });
@@ -58,7 +59,7 @@
   const closedRenderer = rendererFor(closedCanvas);
   const closedScene = new THREE.Scene();
   const closedCamera = new THREE.PerspectiveCamera(34, 1.45, .1, 30);
-  closedCamera.position.set(3.5, 3.2, 4.4);
+  closedCamera.position.set(3.05, 2.7, 3.65);
   closedCamera.lookAt(0, 0, 0);
   addLights(closedScene);
   const closedBook = new THREE.Group();
@@ -69,6 +70,13 @@
   closedBack.position.y = -.25;
   closedBook.add(closedBack, closedPages, closedCover);
   addCoverDetails(closedBook, 2.8, 1.92, .35);
+  const closedShadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(3.45, 2.5),
+    new THREE.MeshBasicMaterial({ color: 0x070403, transparent: true, opacity: .38, depthWrite: false })
+  );
+  closedShadow.rotation.x = -Math.PI / 2;
+  closedShadow.position.y = -.36;
+  closedBook.add(closedShadow);
   closedBook.rotation.set(-.05, -.18, .03);
   closedScene.add(closedBook);
 
@@ -249,6 +257,8 @@
   }
   window.addEventListener('resize', resize);
   resize();
+  closedRenderer.render(closedScene, closedCamera);
+  if (trigger) trigger.classList.add('book-webgl-ready');
 
   function render() {
     closedBook.rotation.y += reducedMotion ? 0 : .0012;
