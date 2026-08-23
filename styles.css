@@ -446,6 +446,204 @@
   }
 
   /* ========================================================================
+     V8 - full-screen enchanted mats + interactive session book
+     ======================================================================== */
+  .game-shell { min-height: 100vh; margin-right: 0; }
+  .room-layout, .play-mat { min-height: calc(100vh - 58px); }
+
+  .play-mat {
+    isolation: isolate;
+    background:
+      radial-gradient(circle at 18% 8%, color-mix(in srgb, var(--felt-light) 72%, transparent), transparent 38%),
+      radial-gradient(circle at 82% 46%, color-mix(in srgb, var(--felt-dark) 48%, transparent), transparent 48%),
+      var(--felt);
+  }
+  .play-mat::before { z-index: 0; opacity: .28; }
+  .play-mat::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    box-shadow: inset 0 0 120px 28px rgba(8,7,5,.48);
+    background: linear-gradient(115deg, rgba(255,255,255,.025), transparent 30%, rgba(0,0,0,.13));
+  }
+
+  html[data-theme="emerald"] .play-mat {
+    background:
+      radial-gradient(circle at 16% 12%, rgba(100,157,119,.38), transparent 36%),
+      radial-gradient(circle at 76% 72%, rgba(8,34,24,.5), transparent 50%),
+      #193b2e;
+  }
+  html[data-theme="dragon"] .play-mat {
+    background:
+      radial-gradient(circle at 78% 18%, rgba(255,102,48,.34), transparent 31%),
+      radial-gradient(circle at 18% 76%, rgba(76,8,7,.65), transparent 48%),
+      #3d1513;
+  }
+  html[data-theme="moon"] .play-mat {
+    background:
+      radial-gradient(circle at 82% 10%, rgba(187,208,255,.24), transparent 24%),
+      radial-gradient(circle at 32% 68%, rgba(54,72,132,.4), transparent 48%),
+      #111d37;
+  }
+  html[data-theme="parchment"] .play-mat {
+    background:
+      radial-gradient(circle at 20% 12%, rgba(255,222,154,.43), transparent 32%),
+      radial-gradient(circle at 80% 70%, rgba(102,54,25,.3), transparent 47%),
+      #a86f3e;
+  }
+  html[data-theme="frost"] .play-mat {
+    background:
+      radial-gradient(circle at 18% 12%, rgba(245,252,255,.54), transparent 31%),
+      radial-gradient(circle at 78% 72%, rgba(59,105,136,.38), transparent 49%),
+      #739db9;
+  }
+
+  .landscape-layer { height: 38vh; min-height: 250px; }
+  .landscape-back { opacity: .72; }
+  .landscape-front { opacity: .9; }
+  html[data-theme="moon"] .play-mat::after { box-shadow: inset 0 0 140px 34px rgba(3,7,20,.62); }
+  html[data-theme="frost"] .play-mat::after { box-shadow: inset 0 0 110px 18px rgba(34,67,86,.36); }
+
+  /* Closed on the tabletop; opened into a two-page chronicle on demand. */
+  .book-button,
+  .menu-btn.book-button {
+    display: flex;
+    position: fixed;
+    top: 50%;
+    right: 0;
+    left: auto;
+    z-index: 42;
+    width: 50px;
+    height: 148px;
+    padding: 12px 8px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 9px;
+    color: #ead6ad;
+    background: linear-gradient(90deg, #3b2018, #6c3c28 18%, #4d281e 92%);
+    border: 1px solid #b58a4f;
+    border-right: 0;
+    border-radius: 5px 0 0 5px;
+    box-shadow: -8px 9px 22px rgba(0,0,0,.42), inset 5px 0 0 rgba(31,15,12,.38);
+    font-family: var(--display);
+    font-size: 10px;
+    line-height: 1.1;
+    letter-spacing: .08em;
+    writing-mode: vertical-rl;
+    transform: translateY(-50%) rotate(0deg);
+  }
+  .book-button:hover { color: #fff0c8; border-color: #e0bc72; transform: translateY(-50%) translateX(-3px); }
+  .book-button[aria-expanded="true"] { opacity: 0; pointer-events: none; }
+  .book-glyph { font-size: 16px; writing-mode: horizontal-tb; }
+
+  .drawer-overlay {
+    display: block;
+    z-index: 43;
+    background: rgba(8,6,4,.7);
+    backdrop-filter: blur(3px);
+  }
+  .table-notebook {
+    display: flex;
+    position: fixed;
+    top: 70px;
+    right: 18px;
+    bottom: 18px;
+    left: auto;
+    z-index: 44;
+    width: min(92vw, 690px);
+    padding: 24px 30px 28px;
+    transform: translateX(calc(100% + 40px)) rotate(1deg);
+    background: linear-gradient(105deg, #3a1e17, #70442d 4%, #4b291f 96%, #2d1712);
+    border: 1px solid #b78a50;
+    border-radius: 5px 12px 12px 5px;
+    box-shadow: -24px 28px 60px rgba(0,0,0,.55), inset 0 0 0 5px rgba(39,18,13,.42);
+    transition: transform .38s cubic-bezier(.2,.8,.2,1);
+    overflow: visible;
+  }
+  .table-notebook.open { transform: translateX(0) rotate(.25deg); }
+  .table-notebook .drawer-head { margin: 0 8px 12px; }
+  .table-notebook .drawer-title { color: #efdcae; font-size: 17px; }
+  .table-notebook .drawer-close { display: block; color: #dbc69d; }
+  .table-notebook .drawer-nav { margin: 0 8px 10px; }
+  .table-notebook .drawer-divider { margin: 0 8px 12px; background: rgba(226,193,127,.38); }
+  .table-notebook .notebook { min-height: 0; }
+  .table-notebook .notebook-page {
+    position: relative;
+    min-height: 330px;
+    margin: 8px 0 14px;
+    padding: 28px 42px 34px;
+    background:
+      linear-gradient(90deg, #d6c08f 0, #f0e0b8 8%, #ead7aa 49.3%, #bba373 50%, #ead7aa 50.7%, #f0e0b8 92%, #d1b987 100%);
+    border: 0;
+    border-radius: 2px 7px 7px 2px;
+    box-shadow: inset 0 0 34px rgba(91,57,22,.2), 0 9px 24px rgba(0,0,0,.38);
+    clip-path: none;
+    transform: none;
+  }
+  .table-notebook .notebook-page::before {
+    inset: 62px 34px 24px;
+    background-image: repeating-linear-gradient(transparent, transparent 26px, rgba(90,60,20,.16) 27px);
+  }
+  .table-notebook .notebook-page::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 18px;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, transparent, rgba(69,40,17,.2), rgba(255,247,216,.25), transparent);
+    pointer-events: none;
+  }
+  .table-notebook .page-session-title,
+  .table-notebook .page-session-date,
+  .table-notebook .page-notes,
+  .table-notebook .page-empty { width: calc(50% - 20px); }
+  .table-notebook .page-session-title { font-size: 18px; }
+  .table-notebook .page-notes li { line-height: 27px; }
+  .table-notebook .party-form { margin: 0 8px 8px; }
+  .table-notebook .party-form input[type="text"] {
+    color: #f0dfba;
+    background: rgba(22,11,8,.36);
+    border-bottom-color: #b78a50;
+  }
+  .table-notebook .notebook-nav { margin: 0 8px; }
+
+  #log li.log-warning {
+    display: block;
+    color: #f4c68d;
+    font-family: var(--body);
+    font-style: italic;
+  }
+
+  @media (max-width: 720px) {
+    .table-notebook {
+      top: 62px;
+      right: 8px;
+      bottom: 8px;
+      left: auto;
+      width: calc(100vw - 16px);
+      padding: 20px 16px;
+      transform: translateX(calc(100% + 30px));
+      border-right: 1px solid #b78a50;
+    }
+    .table-notebook.open { transform: translateX(0); }
+    .table-notebook .notebook-page {
+      min-height: 310px;
+      padding: 24px 24px 30px;
+      background: linear-gradient(90deg, #d6c08f, #f0e0b8 8%, #ead7aa 92%, #d1b987);
+    }
+    .table-notebook .notebook-page::after { display: none; }
+    .table-notebook .page-session-title,
+    .table-notebook .page-session-date,
+    .table-notebook .page-notes,
+    .table-notebook .page-empty { width: 100%; }
+    .book-button, .menu-btn.book-button { top: auto; right: 10px; bottom: 18px; width: 48px; height: 118px; }
+  }
+
+  /* ========================================================================
      V7 - full tabletop redesign
      ======================================================================== */
   body {
