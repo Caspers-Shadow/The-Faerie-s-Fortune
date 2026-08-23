@@ -1,7 +1,4 @@
-/* =========================================================================
-   SHARED - Supabase client + small helpers used across every page.
-   Loaded after config.js and the Supabase CDN script on every page.
-   ========================================================================= */
+// supabase client + small helpers, loaded after config.js on every page
 
 const CLOUD_ENABLED = typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL && !SUPABASE_URL.startsWith('YOUR_');
 const supabaseClient = CLOUD_ENABLED ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
@@ -66,7 +63,7 @@ async function requireSession() {
   if (!session) {
     // Guard against a redirect loop: if we already bounced here once very
     // recently, something's wrong with session detection rather than the
-    // person actually being logged out - stop and say so instead of
+    // person actually being logged out. stop and say so instead of
     // redirecting forever.
     if (sessionStorage.getItem('ff-bounced')) {
       sessionStorage.removeItem('ff-bounced');
