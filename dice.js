@@ -1,34 +1,18 @@
-/* =========================================================================
-   ROLL THE BONES - 3D dice tray
-   -------------------------------------------------------------------------
-   Every die is placeholder Three.js geometry. Each real face gets exactly
-   one printed numeral (faces are found by clustering triangles that share
-   a surface normal, so this works on any convex shape without hand-mapped
-   UVs). When you roll, the die's final orientation is computed so the
-   face carrying the chosen result ends up turned toward the viewer - the
-   number showing IS the result, not a coincidence - and that face gets a
-   quick highlight pop once it settles. Dice gem colors follow the current
-   table theme.
-
-   SWAPPING IN YOUR OWN BLENDER DICE
-   ----------------------------------
-   1. Model each die centered on the origin, ~1 unit across, export as
-      glTF Binary (.glb) - one file per die, e.g. dice-models/d20.glb.
-   2. Add a classic GLTFLoader script tag right after the three.min.js tag
-      above, pointing at (cdnjs) three.js/r128/examples/js/loaders/GLTFLoader.js
-   3. In DICE_CONFIG below, replace a die's `build` function to load and
-      cache the .glb with THREE.GLTFLoader, then .clone() it on later rolls.
-      If your model already has numbers sculpted in, you can skip
-      addFaceNumbers() for that die - but then you'll also need to tag each
-      face mesh's userData.value/faceNormal yourself so landing-on-result
-      still works (see addFaceNumbers for the shape to match).
-   ========================================================================= */
+// Placeholder dice geometry for now. Each face gets a number by grouping
+// triangles that share a normal (works for any convex shape, no UV mapping
+// needed). When you roll, we figure out which way the die needs to end up
+// facing so the number showing is actually the result, not just whatever
+// it lands on.
+//
+// To swap in real Blender models later: export each die as .glb, add the
+// GLTFLoader script tag, and in DICE_CONFIG point a die's build() at
+// THREE.GLTFLoader instead. If the model has numbers baked in already you
+// can skip addFaceNumbers(), but you'll need to set userData.value /
+// userData.faceNormal yourself on each face or landing-on-result breaks.
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// ---------------------------------------------------------------------------
-// Table themes (also drive dice gem colors, so the whole set matches)
-// ---------------------------------------------------------------------------
+// theme colors also drive dice gem colors, so the set matches the table
 const THEME_META = {
   emerald:   { name: 'Emerald Table',    swatch: ['#1B3A2F', '#E8C77A'], torch: 0xffcf99, rim: 0xbcd4ff,
     dice: { d4: 0xA5453A, d6base: '#EFE3C8', d8: 0x2F6B4F, d10: 0xC9A356, d12: 0x5B3E8C, d20: 0xE8B93E },
@@ -50,13 +34,11 @@ const THEME_ORDER = ['emerald', 'dragon', 'moon', 'parchment', 'frost'];
 const savedTheme = localStorage.getItem('ff-theme');
 let currentThemeId = THEME_ORDER.includes(savedTheme) ? savedTheme : 'emerald';
 
-// ---------------------------------------------------------------------------
 // Face-finding: works on any convex polyhedron by clustering triangles that
 // share a surface normal (one cluster = one real face). -0 is normalized to
-// 0 before building the cluster key - without that, floating-point noise on
+// 0 before building the cluster key. Without that, floating-point noise on
 // coordinates that are mathematically zero can split a single face into two
 // clusters, which is what caused faces with a missing or doubled number.
-// ---------------------------------------------------------------------------
 function roundKey(n) {
   let r = Math.round(n * 100) / 100;
   if (Math.abs(r) < 0.005) r = 0; // snap -0 and float jitter near zero to a single value
@@ -137,7 +119,7 @@ function numberTexture(text, textColor, haloColor) {
   return tex;
 }
 
-// labels: array of {value, text} - one entry per real face, in cluster order.
+// labels: array of {value, text}, one entry per real face, in cluster order.
 // Also stamps userData.value / userData.faceNormal on each number plane, in
 // `mesh`'s PARENT-local frame, so rollCurrentDie() can look up "which way do
 // I need to turn to show a 7" without caring how deep the mesh is nested.
@@ -158,9 +140,7 @@ function addFaceNumbers(mesh, geometry, planeSize, textColor, haloColor, labels)
 
 function seqLabels(a, b) { const out = []; for (let i = a; i <= b; i++) out.push({ value: i, text: String(i) }); return out; }
 
-// ---------------------------------------------------------------------------
 // Dice geometry (placeholders, ready to be swapped for Blender exports)
-// ---------------------------------------------------------------------------
 function pipTexture(pips, baseColor) {
   const layout = { 1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8] }[pips];
   const size = 128;
@@ -264,9 +244,7 @@ const DICE_CONFIG = {
 const DICE_ORDER = ['d4','d6','d8','d10','d12','d20','d100'];
 function range(a, b) { const out = []; for (let i = a; i <= b; i++) out.push(i); return out; }
 
-// ---------------------------------------------------------------------------
 // Scene
-// ---------------------------------------------------------------------------
 const canvas = document.getElementById('scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -317,10 +295,8 @@ function tick() {
 }
 tick();
 
-// ---------------------------------------------------------------------------
-// Rolling - tumble chaotically, then slerp precisely onto the face that
+// tumble chaotically, then slerp onto the face that
 // carries the rolled value so what's showing when it stops IS the result.
-// ---------------------------------------------------------------------------
 function easeOutCubic(x) { return 1 - Math.pow(1 - x, 3); }
 
 function findTarget(root, value) {
@@ -423,10 +399,8 @@ function finishRoll(value, cfg, winningPlane) {
   recordRoll(cfg, display, isCrit, isFail);
 }
 
-// ---------------------------------------------------------------------------
 // Dice tabs + theme swatches get disabled mid-roll so a switch can't yank
 // the die out from under an in-flight animation.
-// ---------------------------------------------------------------------------
 function setControlsEnabled(enabled) {
   document.querySelectorAll('.die-btn, .theme-swatch').forEach(b => { b.disabled = !enabled; });
 }
@@ -458,9 +432,7 @@ const tray = document.getElementById('tray');
 tray.addEventListener('click', rollCurrentDie);
 tray.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); rollCurrentDie(); } });
 
-// ---------------------------------------------------------------------------
-// Fantasy backdrops - procedural, layered, and re-drawn per theme
-// ---------------------------------------------------------------------------
+// fantasy backdrops, built in code and redrawn per theme
 const SVGNS = 'http://www.w3.org/2000/svg';
 function el(tag, attrs) {
   const n = document.createElementNS(SVGNS, tag);
@@ -623,11 +595,9 @@ function buildAmbience(themeId) {
   }
 }
 
-// ---------------------------------------------------------------------------
 // Apply a theme: re-tint the lights, redraw the backdrop, and rebuild the
 // current die in the new palette. Single entry point, used on load and on
 // every swatch click.
-// ---------------------------------------------------------------------------
 function applyTheme(themeId) {
   currentThemeId = themeId;
   document.documentElement.setAttribute('data-theme', themeId);
