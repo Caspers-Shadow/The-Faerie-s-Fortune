@@ -1,6 +1,4 @@
-/* =========================================================================
-   DASHBOARD - your parties, plus create / join
-   ========================================================================= */
+// your parties, plus create/join
 
 let me = null;
 const statusEl = document.getElementById('dashStatus');
@@ -28,7 +26,7 @@ async function loadParties() {
   if (error) { listEl.innerHTML = '<p class="party-hint">Couldn\'t load your parties: ' + escapeHtml(error.message) + '</p>'; return; }
 
   if (!data || data.length === 0) {
-    listEl.innerHTML = '<h2>Your Parties</h2><p class="party-hint">You\'re not in a party yet - found one below, or join one with an invite code.</p>';
+    listEl.innerHTML = '<h2>Your Parties</h2><p class="party-hint">You\'re not in a party yet. Found one below, or join one with an invite code.</p>';
     return;
   }
 
