@@ -186,14 +186,12 @@ create table log_entries (
   crit boolean default false,
   fail boolean default false,
   note_text text,
-  private boolean not null default false,
   created_at timestamptz not null default now()
 );
 alter table log_entries enable row level security;
 create policy "Members can view log entries"
   on log_entries for select using (
-    (public.is_party_dm(party_id) or public.is_party_member(party_id))
-    and (private = false or user_id = auth.uid())
+    public.is_party_dm(party_id) or public.is_party_member(party_id)
   );
 create policy "Members can add log entries"
   on log_entries for insert with check (
@@ -202,10 +200,8 @@ create policy "Members can add log entries"
 ```
 
 This creates five tables and turns on row-level security everywhere, so
-the database itself, not just the site's code, enforces who can see what:
-who belongs to a party, and within a party, whose rolls and notes are
-private. DM rolls and every note are private by default, visible only to
-whoever made them.
+the database itself, not just the site's code, enforces who can see what.
+Only party members can read or add rolls and notes for that party.
 
 ### Recommended: turn off email confirmation while testing
 **Authentication → Providers → Email**, toggle off **"Confirm email"** so
