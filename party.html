@@ -7,14 +7,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=6">
+<link rel="stylesheet" href="styles.css?v=7">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Cpolygon points=%2750,6 90,30 90,70 50,94 10,70 10,30%27 fill=%27%23E8B93E%27 stroke=%27%238C6B32%27 stroke-width=%274%27/%3E%3Ctext x=%2750%27 y=%2763%27 font-family=%27Georgia%27 font-weight=%27900%27 font-size=%2740%27 text-anchor=%27middle%27 fill=%27%231C1712%27%3E20%3C/text%3E%3C/svg%3E">
 </head>
 <body>
 
-<button class="menu-btn" id="hamburgerBtn" aria-expanded="false" aria-controls="drawer" aria-label="Open menu">☰</button>
+<button class="menu-btn" id="hamburgerBtn" aria-expanded="false" aria-controls="drawer" aria-label="Open session notebook">☰</button>
 <div class="drawer-overlay" id="drawerOverlay" hidden></div>
-<aside class="drawer" id="drawer" aria-hidden="true">
+<aside class="drawer table-notebook" id="drawer" aria-hidden="false">
   <div class="drawer-head">
     <span class="drawer-title">The Faerie's Fortune</span>
     <button class="drawer-close" id="drawerClose" aria-label="Close menu">✕</button>
@@ -41,41 +41,56 @@
   </div>
 </aside>
 
-<div id="ambience"></div>
-
-<div class="stage">
-  <header>
-    <p class="eyebrow">The Gaming Table</p>
-    <h1 id="partyTitle">The Faerie's <span>Fortune</span></h1>
+<div class="game-shell">
+  <header class="game-bar">
+    <a class="game-brand" href="dashboard.html" aria-label="Back to your parties">
+      <span class="brand-die"><span>20</span></span>
+      <span>The Faerie's Fortune</span>
+    </a>
+    <div class="theme-select" id="themeSelect" role="group" aria-label="Choose a play mat">
+      <span class="theme-label">Play mat</span>
+    </div>
   </header>
 
-  <div class="party-panel" id="partyInfo" style="width:min(100%,560px); margin-bottom:22px;">
-    <p class="party-hint">Loading party…</p>
-  </div>
+  <div class="room-layout">
+    <main class="play-mat">
+      <div id="ambience"></div>
+      <div class="stage">
+        <header class="party-heading">
+          <div>
+            <p class="eyebrow">Tonight's table</p>
+            <h1 id="partyTitle">The Faerie's <span>Fortune</span></h1>
+          </div>
+          <div class="party-panel" id="partyInfo">
+            <p class="party-hint">Loading party…</p>
+          </div>
+        </header>
 
-  <div class="theme-select" id="themeSelect" role="group" aria-label="Choose a table theme">
-    <span class="theme-label">Table</span>
-  </div>
+        <div class="roll-workspace">
+          <div class="dice-select" id="diceSelect" role="tablist" aria-label="Choose a die"></div>
 
-  <div class="dice-select" id="diceSelect" role="tablist" aria-label="Choose a die"></div>
+          <div class="tray-column">
+            <div class="tray-wrap" id="trayWrap">
+              <div class="tray-rim" id="tray" role="button" tabindex="0" aria-label="Roll the die">
+                <div class="tray-felt">
+                  <canvas id="scene" aria-hidden="true"></canvas>
+                </div>
+              </div>
+              <div class="result-hud" id="resultHud" aria-live="polite">-</div>
+            </div>
+            <p class="hint" id="hint">Click the tray, or press Enter / Space, to roll</p>
+          </div>
+        </div>
 
-  <div class="tray-wrap" id="trayWrap">
-    <div class="tray-rim" id="tray" role="button" tabindex="0" aria-label="Roll the die">
-      <div class="tray-felt">
-        <canvas id="scene" aria-hidden="true"></canvas>
+        <section class="ledger">
+          <div class="auth-row ledger-head">
+            <h2 id="ledgerHeading">Recent casts</h2>
+            <button class="link-btn" id="refreshBtn">Refresh</button>
+          </div>
+          <ul id="log"><li class="empty">Loading…</li></ul>
+        </section>
       </div>
-    </div>
-    <div class="result-hud" id="resultHud" aria-live="polite">-</div>
-  </div>
-
-  <p class="hint" id="hint">Click the tray, or press Enter / Space, to roll</p>
-
-  <div class="ledger" style="margin-top:26px;">
-    <div class="auth-row" style="margin-bottom:10px;">
-      <h2 id="ledgerHeading" style="margin:0;">Log</h2>
-      <button class="link-btn" id="refreshBtn">Refresh</button>
-    </div>
-    <ul id="log"><li class="empty">Loading…</li></ul>
+    </main>
   </div>
 </div>
 
