@@ -450,3 +450,202 @@
     .die-btn { padding: 8px 10px; font-size: 12px; }
     .theme-select { gap: 6px; }
   }
+
+  /* ---- restrained, tabletop-first refinement ---- */
+  /* Let the page feel assembled rather than stacked from identical cards. */
+  body {
+    justify-content: flex-start;
+    padding-left: clamp(24px, 6vw, 92px);
+    background:
+      radial-gradient(ellipse at 18% -8%, color-mix(in srgb, var(--bg-glow) 76%, transparent), transparent 58%),
+      var(--bg);
+  }
+
+  .stage {
+    align-items: flex-start;
+    max-width: 980px;
+  }
+
+  header {
+    max-width: 720px;
+    margin: 0 0 28px;
+    text-align: left;
+  }
+
+  .eyebrow { margin-bottom: 7px; }
+  h1 { line-height: 1.02; letter-spacing: 0.015em; }
+
+  .theme-select,
+  .dice-select {
+    justify-content: flex-start;
+  }
+
+  .theme-select { margin: 2px 0 20px 12px; }
+  .dice-select { margin: 0 0 28px; }
+
+  .die-btn {
+    background: transparent;
+    border-color: transparent;
+    border-bottom: 1px solid var(--accent-dark);
+    border-radius: 2px;
+    padding: 8px 12px 7px;
+    box-shadow: none;
+  }
+  .die-btn:hover {
+    transform: translateY(-1px);
+    border-color: transparent;
+    border-bottom-color: var(--accent-bright);
+  }
+  .die-btn.active {
+    color: var(--ink);
+    background: var(--accent);
+    border-color: transparent;
+    box-shadow: 3px 3px 0 color-mix(in srgb, var(--accent-dark) 72%, transparent);
+    transform: rotate(-1deg);
+  }
+
+  .tray-wrap {
+    align-self: center;
+    margin-left: clamp(0px, 7vw, 76px);
+  }
+
+  .tray-rim {
+    background: var(--accent-dark);
+    box-shadow: 0 26px 46px -18px rgba(0,0,0,0.72), inset 0 0 0 2px rgba(255,255,255,0.06);
+  }
+
+  .result-hud {
+    background: var(--accent);
+    border: 0;
+    border-radius: 3px;
+    box-shadow: 5px 7px 18px -8px rgba(0,0,0,0.75);
+    transform: translate(-47%, 50%) rotate(-1deg);
+  }
+  .result-hud.crit { background: var(--crit); }
+  .result-hud.fail { background: var(--fail); }
+
+  .hint { align-self: center; margin-left: clamp(0px, 7vw, 76px); }
+
+  .party-panel,
+  .ledger,
+  .auth-card {
+    background: color-mix(in srgb, var(--panel-a) 48%, transparent);
+    border: 0;
+    border-left: 2px solid var(--accent-dark);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  #partyInfo {
+    margin-left: 18px !important;
+    padding: 12px 0 12px 18px;
+    background: transparent;
+  }
+
+  .party-panel h2::after,
+  .ledger h2::after { right: 34%; opacity: 0.7; }
+
+  .member-chip {
+    background: transparent;
+    border: 0;
+    border-radius: 2px;
+    padding: 4px 7px;
+  }
+  .member-chip.dm {
+    background: color-mix(in srgb, var(--accent) 70%, transparent);
+    border: 0;
+  }
+  .member-chip.you { box-shadow: 0 -1px 0 var(--accent-bright) inset; }
+  .member-chip.online { box-shadow: none; }
+
+  .ledger {
+    align-self: flex-end;
+    margin-right: 2%;
+    padding: 16px 0 12px 20px;
+    background: transparent;
+  }
+
+  .menu-btn {
+    background: color-mix(in srgb, var(--panel-a) 82%, transparent);
+    border: 0;
+    border-radius: 3px;
+    box-shadow: 3px 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .drawer {
+    background: var(--panel-b);
+    border-right: 2px solid var(--accent-dark);
+  }
+
+  /* Dashboard: one open list, then two unequal working areas. */
+  body.auth-page { padding-top: 54px; }
+  .stage-narrow { max-width: 760px; }
+  .stage-narrow > .auth-row { width: 100% !important; }
+  #partyList {
+    width: min(100%, 650px) !important;
+    padding: 12px 0 18px;
+    background: transparent;
+    border: 0;
+  }
+  .party-row-link {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px dashed color-mix(in srgb, var(--accent-dark) 65%, transparent);
+    border-radius: 0;
+    padding: 12px 4px;
+    margin: 0;
+  }
+  .party-row-link:hover { border-bottom-color: var(--accent); }
+
+  .dashboard-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1.16fr) minmax(0, .84fr);
+    gap: clamp(22px, 5vw, 54px);
+    width: 100%;
+    margin-top: 24px;
+  }
+  .dashboard-actions .party-panel {
+    width: auto !important;
+    margin: 0;
+    padding: 10px 0 8px 18px;
+    background: transparent;
+  }
+  #joinPanel { margin-top: 34px; }
+
+  .party-form input[type="text"],
+  .auth-card input[type="email"],
+  .auth-card input[type="password"],
+  .auth-card input[type="text"] {
+    background: color-mix(in srgb, var(--felt-dark) 38%, transparent);
+    border: 0;
+    border-bottom: 1px solid var(--accent-dark);
+    border-radius: 2px;
+  }
+
+  .auth-card { padding: 20px 22px; }
+  .auth-tabs { border-bottom: 1px solid var(--accent-dark); gap: 22px; }
+  .auth-tab {
+    flex: 0 0 auto;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 7px 2px;
+  }
+  .auth-tab.active {
+    color: var(--accent-bright);
+    background: transparent;
+    border-bottom: 2px solid var(--accent-bright);
+  }
+
+  @media (max-width: 640px) {
+    body { justify-content: center; padding-left: 14px; }
+    .stage { align-items: stretch; }
+    header { margin-left: 8px; }
+    .theme-select { margin-left: 8px; }
+    .dice-select { justify-content: flex-start; }
+    .tray-wrap, .hint { align-self: center; margin-left: 0; }
+    .ledger { align-self: stretch; margin-right: 0; }
+    .dashboard-actions { grid-template-columns: 1fr; gap: 18px; }
+    #joinPanel { margin-top: 0; }
+    .dashboard-actions .party-form { flex-direction: column; }
+  }
