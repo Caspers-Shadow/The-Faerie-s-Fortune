@@ -1,11 +1,6 @@
-/* =========================================================================
-   PARTY ROOM
-   -------------------------------------------------------------------------
-   Everything here is scoped to ONE party (?party=<id> in the URL). Access
-   is enforced twice over: once here (so non-members get a clear message
-   instead of a broken page), and again by the database's row-level
-   security policies (so it's enforced even if this file didn't bother).
-   ========================================================================= */
+// everything here is scoped to one party (?party=<id> in the URL).
+// access gets checked twice: once here for a clean error message, and
+// again by the database's RLS policies regardless of what this file does
 
 let me = null;
 let partyId = null;
@@ -55,9 +50,7 @@ async function ensureSession() {
   if (created) currentSessionId = created.id;
 }
 
-// ---------------------------------------------------------------------------
-// Presence - who's actually got this party open right now, live.
-// ---------------------------------------------------------------------------
+// who's actually got this party open right now
 function setupPresence() {
   const channel = supabaseClient.channel('party-presence-' + partyId, { config: { presence: { key: me.id } } });
   channel.on('presence', { event: 'sync' }, () => {
@@ -69,10 +62,8 @@ function setupPresence() {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Roster - DM stands out with a crown, your own entry is marked "(You)",
+// DM gets a crown, your own chip gets a "(You)" tag
 // and everyone shows lit up (online) or dimmed (offline) based on presence.
-// ---------------------------------------------------------------------------
 async function renderPartyInfo() {
   const panel = document.getElementById('partyInfo');
   const { data: roster } = await supabaseClient
@@ -111,7 +102,7 @@ async function renderPartyInfo() {
   if (myRole === 'dm') {
     const inviteRow = document.createElement('p');
     inviteRow.className = 'party-hint';
-    inviteRow.innerHTML = 'Invite code: <strong style="letter-spacing:0.1em; color:var(--accent-bright);">' + escapeHtml(party.invite_code) + '</strong> - share it so players can join.';
+    inviteRow.innerHTML = 'Invite code: <strong style="letter-spacing:0.1em; color:var(--accent-bright);">' + escapeHtml(party.invite_code) + '</strong>, share it so players can join.';
     panel.appendChild(inviteRow);
   }
 }
@@ -125,9 +116,7 @@ async function startNewSession() {
   await refreshNotebook();
 }
 
-// ---------------------------------------------------------------------------
-// Log - rolls and session dividers only. Notes live in the notebook.
-// ---------------------------------------------------------------------------
+// just rolls and session dividers, notes live in the notebook now
 async function refreshLog() {
   const log = document.getElementById('log');
   const { data, error } = await supabaseClient
@@ -139,7 +128,7 @@ async function refreshLog() {
     .limit(60);
 
   if (error) { log.innerHTML = '<li class="empty">Couldn\'t load the log.</li>'; return; }
-  if (!data || data.length === 0) { log.innerHTML = '<li class="empty">No rolls yet - give it a throw.</li>'; return; }
+  if (!data || data.length === 0) { log.innerHTML = '<li class="empty">No rolls yet, give it a throw.</li>'; return; }
 
   log.innerHTML = '';
   data.forEach(e => log.appendChild(renderEntry(e)));
@@ -153,7 +142,7 @@ function renderEntry(e) {
     return li;
   }
   const who = e.user ? escapeHtml(e.user.display_name) + ' rolled the ' : 'Someone rolled the ';
-  const flourish = e.crit ? ' - critical hit!' : e.fail ? ' - fumble.' : '';
+  const flourish = e.crit ? ', critical hit!' : e.fail ? ', fumble.' : '';
   if (e.crit) li.classList.add('crit');
   if (e.fail) li.classList.add('fail');
   li.innerHTML = `<span>${who}${e.die}${flourish} <span class="entry-time">${timeLabel(e.created_at)}</span></span><span class="val">${e.display}</span>`;
@@ -165,13 +154,12 @@ async function recordRoll(cfg, display, isCrit, isFail) {
   await supabaseClient.from('log_entries').insert({
     party_id: partyId, session_id: currentSessionId, user_id: me.id,
     type: 'roll', die: cfg.label, display, crit: !!isCrit, fail: !!isFail,
+    private: myRole === 'dm',
   });
   refreshLog();
 }
 
-// ---------------------------------------------------------------------------
-// Drawer - top-left menu button, slide-in panel with nav + the notebook
-// ---------------------------------------------------------------------------
+// top-left menu button, slide-in panel with nav + the notebook
 const menuBtn = document.getElementById('hamburgerBtn');
 const drawer = document.getElementById('drawer');
 const drawerOverlay = document.getElementById('drawerOverlay');
@@ -190,10 +178,8 @@ document.getElementById('drawerClose').addEventListener('click', closeDrawer);
 drawerOverlay.addEventListener('click', closeDrawer);
 document.getElementById('drawerLogout').addEventListener('click', signOutAndRedirect);
 
-// ---------------------------------------------------------------------------
-// The notebook - one session per page. Flip with Prev/Next; new notes jump
+// one session per page, flip with Prev/Next. new notes jump
 // you to the current session's page automatically.
-// ---------------------------------------------------------------------------
 let notesBySession = {};
 
 async function refreshNotebook() {
@@ -255,7 +241,7 @@ document.getElementById('noteBtn').addEventListener('click', async () => {
   if (!text || !currentSessionId) return;
   input.value = '';
   await supabaseClient.from('log_entries').insert({
-    party_id: partyId, session_id: currentSessionId, user_id: me.id, type: 'note', note_text: text,
+    party_id: partyId, session_id: currentSessionId, user_id: me.id, type: 'note', note_text: text, private: true,
   });
   await refreshNotebook();
 });
