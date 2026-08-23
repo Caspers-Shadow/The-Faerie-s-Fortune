@@ -30,6 +30,7 @@ let onlineIds = new Set();
 
   await ensureSession();
   setupPresence();
+  setupLogSync();
   await renderPartyInfo();
   await refreshLog();
   await refreshNotebook();
@@ -60,6 +61,28 @@ function setupPresence() {
   channel.subscribe(async status => {
     if (status === 'SUBSCRIBED') await channel.track({ online_at: new Date().toISOString() });
   });
+}
+
+// Keep the shared cast history current for everyone at the table. Realtime is
+// immediate when it is enabled for log_entries; the quiet interval is a
+// fallback for projects where database replication has not been switched on.
+function setupLogSync() {
+  let refreshTimer = null;
+  const queueRefresh = () => {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => { refreshLog(); }, 120);
+  };
+
+  supabaseClient
+    .channel('party-rolls-' + partyId)
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'log_entries', filter: 'party_id=eq.' + partyId,
+    }, queueRefresh)
+    .subscribe();
+
+  setInterval(() => {
+    if (document.visibilityState === 'visible') refreshLog();
+  }, 5000);
 }
 
 // DM gets a crown, your own chip gets a "(You)" tag
@@ -151,12 +174,21 @@ function renderEntry(e) {
 
 // Called by dice.js's finishRoll() once a roll settles.
 async function recordRoll(cfg, display, isCrit, isFail) {
-  await supabaseClient.from('log_entries').insert({
+  const { error } = await supabaseClient.from('log_entries').insert({
     party_id: partyId, session_id: currentSessionId, user_id: me.id,
     type: 'roll', die: cfg.label, display, crit: !!isCrit, fail: !!isFail,
-    private: myRole === 'dm',
+    private: false,
   });
-  refreshLog();
+  if (error) {
+    console.error('Could not save roll:', error);
+    const log = document.getElementById('log');
+    const warning = document.createElement('li');
+    warning.className = 'log-warning';
+    warning.textContent = 'The cast landed, but could not be written to the shared chronicle.';
+    log.prepend(warning);
+    return;
+  }
+  await refreshLog();
 }
 
 // top-left menu button, slide-in panel with nav + the notebook
