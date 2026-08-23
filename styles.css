@@ -1431,3 +1431,147 @@
   @media (max-width: 760px) {
     .menu-btn.book-button { top: auto; right: 10px; bottom: 18px; left: auto; }
   }
+
+  /* ========================================================================
+     V10 - physical tabletop book, page turns, and reliable mat coverage
+     ======================================================================== */
+  .room-layout,
+  .play-mat {
+    min-height: calc(100vh - 58px);
+    height: auto;
+  }
+  .play-mat {
+    position: relative;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+  }
+  .play-mat #ambience {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    overflow: hidden;
+  }
+  .play-mat .landscape-layer {
+    position: absolute;
+    top: auto;
+    right: -4%;
+    bottom: 0;
+    left: -4%;
+    width: 108%;
+    height: min(42vh, 390px);
+    min-height: 260px;
+  }
+
+  .party-heading {
+    padding: 14px 16px;
+    margin-left: -16px;
+    margin-right: -16px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--felt-dark) 70%, transparent), transparent 82%);
+  }
+  .party-heading h1,
+  .party-heading .eyebrow,
+  .party-heading .member-chip,
+  .ledger,
+  .hint { text-shadow: 0 2px 5px color-mix(in srgb, var(--felt-dark) 75%, transparent); }
+  .ledger {
+    padding: 15px 18px 12px;
+    background: color-mix(in srgb, var(--felt-dark) 68%, transparent);
+    backdrop-filter: blur(4px);
+    border-left: 1px solid color-mix(in srgb, var(--accent-bright) 44%, transparent);
+  }
+  html[data-theme="parchment"] .party-heading,
+  html[data-theme="frost"] .party-heading {
+    background: linear-gradient(90deg, rgba(245,239,218,.72), transparent 86%);
+  }
+  html[data-theme="parchment"] .ledger,
+  html[data-theme="frost"] .ledger {
+    background: rgba(242,239,220,.66);
+    border-left-color: rgba(55,43,29,.38);
+  }
+  html[data-theme="parchment"] .party-heading h1,
+  html[data-theme="parchment"] .party-heading .eyebrow,
+  html[data-theme="parchment"] .ledger,
+  html[data-theme="parchment"] .hint,
+  html[data-theme="frost"] .party-heading h1,
+  html[data-theme="frost"] .party-heading .eyebrow,
+  html[data-theme="frost"] .ledger,
+  html[data-theme="frost"] .hint { text-shadow: 0 1px 3px rgba(255,255,255,.72); }
+
+  /* A closed book physically resting beside the play space. */
+  .play-mat .book-button,
+  .play-mat .menu-btn.book-button {
+    display: grid;
+    position: absolute;
+    top: clamp(145px, 19vh, 220px);
+    right: clamp(16px, 2.5vw, 42px);
+    bottom: auto;
+    left: auto;
+    z-index: 18;
+    width: 152px;
+    height: 104px;
+    padding: 18px 24px;
+    grid-template-rows: 1fr auto;
+    place-items: center;
+    gap: 4px;
+    color: #f0dcae;
+    background:
+      radial-gradient(circle at 50% 38%, rgba(213,174,91,.13), transparent 30%),
+      linear-gradient(125deg, #2c1511, #6b3927 42%, #3b1d17);
+    border: 2px double #ba8d4d;
+    border-left: 11px solid #28120f;
+    border-radius: 5px 10px 10px 5px;
+    box-shadow: 11px 16px 22px rgba(0,0,0,.48), inset 0 0 0 5px rgba(29,12,9,.35);
+    writing-mode: horizontal-tb;
+    transform: rotate(7deg) perspective(600px) rotateX(9deg);
+  }
+  .play-mat .book-button::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 1px solid rgba(222,184,105,.55);
+    border-radius: 2px 5px 5px 2px;
+  }
+  .play-mat .book-button:hover {
+    transform: rotate(4deg) perspective(600px) rotateX(5deg) translateY(-5px);
+    box-shadow: 13px 20px 26px rgba(0,0,0,.55), inset 0 0 0 5px rgba(29,12,9,.35);
+  }
+  .play-mat .book-glyph { position: relative; z-index: 2; color: #f0ca76; font-size: 24px; }
+  .book-object-title { position: relative; z-index: 2; font-family: var(--display); font-size: 10px; letter-spacing: .08em; text-align: center; }
+  .book-clasp {
+    position: absolute;
+    top: 40px;
+    right: -8px;
+    width: 16px;
+    height: 25px;
+    background: linear-gradient(90deg, #7d582c, #d0a458, #745027);
+    border-radius: 2px;
+    box-shadow: 2px 3px 4px rgba(0,0,0,.4);
+  }
+
+  /* Pages now leave and arrive around the spine like a normal book. */
+  .book-page-block .notebook-page {
+    transform-origin: left center;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    transition: transform .34s ease-in, opacity .24s ease;
+  }
+  .book-page-block .notebook-page.turning-next { transform: rotateY(-92deg); opacity: .35; }
+  .book-page-block .notebook-page.turning-prev { transform-origin: right center; transform: rotateY(92deg); opacity: .35; }
+  .book-page-block .notebook-page.arriving-next { transform: rotateY(88deg); opacity: .35; transition: none; }
+  .book-page-block .notebook-page.arriving-prev { transform-origin: right center; transform: rotateY(-88deg); opacity: .35; transition: none; }
+
+  @media (max-width: 1040px) {
+    .play-mat .book-button,
+    .play-mat .menu-btn.book-button { top: auto; right: 18px; bottom: 28px; }
+  }
+
+  @media (max-width: 640px) {
+    .play-mat { padding-bottom: 132px; }
+    .play-mat .book-button,
+    .play-mat .menu-btn.book-button { right: 20px; bottom: 22px; width: 132px; height: 88px; }
+    .party-heading { margin-left: -8px; margin-right: -8px; }
+    .landscape-layer { min-height: 210px; }
+  }
