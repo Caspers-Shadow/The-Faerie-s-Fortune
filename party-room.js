@@ -200,11 +200,13 @@ function openDrawer() {
   menuBtn.setAttribute('aria-expanded', 'true'); drawer.setAttribute('aria-hidden', 'false');
   document.body.classList.add('book-open');
   refreshNotebook();
+  window.dispatchEvent(new CustomEvent('ff:book-open'));
 }
 function closeDrawer() {
   drawer.classList.remove('open'); drawerOverlay.classList.remove('open');
   menuBtn.setAttribute('aria-expanded', 'false'); drawer.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('book-open');
+  window.dispatchEvent(new CustomEvent('ff:book-close'));
   setTimeout(() => { drawerOverlay.hidden = true; }, 700);
 }
 menuBtn.addEventListener('click', () => (drawer.classList.contains('open') ? closeDrawer() : openDrawer()));
@@ -262,6 +264,18 @@ function renderNotebookPage() {
   }
   pageEl.innerHTML = html;
 
+  window.dispatchEvent(new CustomEvent('ff:book-page', { detail: {
+    title,
+    date: dateTimeLabel(s.started_at),
+    notes: notes.map(n => ({
+      author: n.user ? n.user.display_name : 'Someone',
+      text: n.note_text,
+      time: timeLabel(n.created_at),
+    })),
+    page: pageIndex + 1,
+    total: sessionsList.length,
+  }}));
+
   indicatorEl.textContent = `Page ${pageIndex + 1} of ${sessionsList.length}`;
   prevBtn.disabled = pageIndex === 0;
   nextBtn.disabled = pageIndex === sessionsList.length - 1;
@@ -273,6 +287,7 @@ function turnNotebookPage(direction) {
   const nextIndex = pageIndex + direction;
   if (nextIndex < 0 || nextIndex >= sessionsList.length) return;
   pageTurning = true;
+  window.dispatchEvent(new CustomEvent('ff:book-turn', { detail: { direction } }));
   const pageEl = document.getElementById('notebookPage');
   pageEl.classList.add(direction > 0 ? 'turning-next' : 'turning-prev');
   setTimeout(() => {
