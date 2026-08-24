@@ -19,11 +19,16 @@
     return renderer;
   }
 
+  // Both scenes share one warm key light that flickers gently, like the
+  // dice tray's torch, so the whole site feels lit from the same source
+  // rather than each piece having its own flat studio lighting.
+  const keyLights = [];
   function addLights(scene) {
-    scene.add(new THREE.HemisphereLight(0xffe5bd, 0x25150f, 1.25));
+    scene.add(new THREE.HemisphereLight(0xffe5bd, 0x25150f, 1.1));
     const key = new THREE.DirectionalLight(0xffd28d, 1.15);
     key.position.set(-3, 6, 4);
     scene.add(key);
+    keyLights.push(key);
     const rim = new THREE.PointLight(0x8fa8ff, .45, 15);
     rim.position.set(4, 2, -2);
     scene.add(rim);
@@ -37,6 +42,9 @@
   }
   function paperMaterial(texture) {
     return new THREE.MeshStandardMaterial({ color: paper, map: texture || null, roughness: .88, side: THREE.DoubleSide });
+  }
+  function shadowMaterial(opacity) {
+    return new THREE.MeshBasicMaterial({ color: 0x070403, transparent: true, opacity, depthWrite: false });
   }
 
   function addCoverDetails(group, width, height, y) {
@@ -55,6 +63,22 @@
     group.add(border);
   }
 
+  // A leather strap with a small buckle, running across the closed cover.
+  // Real journals like this almost always have one holding it shut.
+  function addClasp(group, width, y) {
+    const strap = new THREE.Mesh(new THREE.BoxGeometry(.22, .04, 2.0), new THREE.MeshStandardMaterial({ color: leatherDark, roughness: .6 }));
+    strap.position.set(width * .3, y + .02, 0);
+    group.add(strap);
+    const buckle = new THREE.Mesh(new THREE.TorusGeometry(.09, .018, 8, 16), goldMaterial());
+    buckle.rotation.x = Math.PI / 2;
+    buckle.position.set(width * .3, y + .05, .55);
+    group.add(buckle);
+    const pin = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, .12, 6), goldMaterial());
+    pin.rotation.z = Math.PI / 2;
+    pin.position.set(width * .3, y + .05, .55);
+    group.add(pin);
+  }
+
   // Closed tabletop book.
   const closedRenderer = rendererFor(closedCanvas);
   const closedScene = new THREE.Scene();
@@ -70,15 +94,14 @@
   closedBack.position.y = -.25;
   closedBook.add(closedBack, closedPages, closedCover);
   addCoverDetails(closedBook, 2.8, 1.92, .35);
-  const closedShadow = new THREE.Mesh(
-    new THREE.PlaneGeometry(3.45, 2.5),
-    new THREE.MeshBasicMaterial({ color: 0x070403, transparent: true, opacity: .38, depthWrite: false })
-  );
+  addClasp(closedBook, 2.8, .25);
+  const closedShadow = new THREE.Mesh(new THREE.PlaneGeometry(3.45, 2.5), shadowMaterial(.38));
   closedShadow.rotation.x = -Math.PI / 2;
   closedShadow.position.y = -.36;
   closedBook.add(closedShadow);
   closedBook.rotation.set(-.05, -.18, .03);
   closedScene.add(closedBook);
+  const closedRestY = closedBook.position.y;
 
   // Full open book: two covers, stacked paper, and a separate turning leaf.
   const fullRenderer = rendererFor(fullCanvas);
@@ -112,6 +135,13 @@
   spine.rotation.x = Math.PI / 2;
   spine.position.y = -.05;
   openBook.add(spine);
+
+  // A soft shadow under the whole open book, grounding it on the table
+  // the same way the closed book already has one.
+  const openShadow = new THREE.Mesh(new THREE.PlaneGeometry(pageW * 2.5, pageH * 1.4), shadowMaterial(.3));
+  openShadow.rotation.x = -Math.PI / 2;
+  openShadow.position.y = -.42;
+  openBook.add(openShadow);
 
   const leftPage = new THREE.Mesh(new THREE.PlaneGeometry(pageW, pageH), paperMaterial());
   leftPage.rotation.x = -Math.PI / 2;
@@ -159,17 +189,40 @@
     gradient.addColorStop(1, side === 'left' ? '#efe0b8' : '#c9ae79');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // gutter shadow: a soft dark edge on whichever side sits at the spine
+    const gutterGrad = ctx.createLinearGradient(side === 'left' ? canvas.width : 0, 0, side === 'left' ? canvas.width - 90 : 90, 0);
+    gutterGrad.addColorStop(0, 'rgba(40,20,8,0.28)');
+    gutterGrad.addColorStop(1, 'rgba(40,20,8,0)');
+    ctx.fillStyle = gutterGrad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
     ctx.strokeStyle = 'rgba(104,72,35,.18)';
     ctx.lineWidth = 2;
     for (let y = 255; y < 1130; y += 56) { ctx.beginPath(); ctx.moveTo(90, y); ctx.lineTo(810, y); ctx.stroke(); }
+
     ctx.fillStyle = '#55351d';
     ctx.textAlign = side === 'left' ? 'right' : 'left';
     const x = side === 'left' ? 775 : 125;
     ctx.font = '700 46px Georgia';
     ctx.fillText(data?.title || 'The Party Chronicle', x, 115);
+
+    // a hand-drawn-feeling rule under the title instead of a straight one
+    ctx.strokeStyle = 'rgba(85,53,29,.55)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    const ruleY = 132, ruleStart = side === 'left' ? 775 : 125, ruleEnd = side === 'left' ? 500 : 400;
+    ctx.moveTo(ruleStart, ruleY);
+    ctx.bezierCurveTo(
+      ruleStart - (ruleStart - ruleEnd) * .3, ruleY + 4,
+      ruleStart - (ruleStart - ruleEnd) * .7, ruleY - 3,
+      ruleEnd, ruleY
+    );
+    ctx.stroke();
+
     ctx.font = '22px monospace';
     ctx.fillStyle = '#86633d';
-    ctx.fillText(data?.date || '', x, 158);
+    ctx.fillText(data?.date || '', x, 168);
     ctx.textAlign = 'left';
     ctx.fillStyle = '#3e2a1a';
     let y = 235;
@@ -190,6 +243,14 @@
     ctx.fillStyle = '#86633d';
     ctx.textAlign = 'center';
     ctx.fillText(`${data?.page || 1} / ${data?.total || 1}`, 450, 1175);
+
+    // faint deckled vignette so the page doesn't read as a flat cut rectangle
+    const vignette = ctx.createRadialGradient(450, 620, 500, 450, 620, 720);
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(60,35,15,0.16)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
     const texture = new THREE.CanvasTexture(canvas);
     texture.anisotropy = 4;
     return texture;
@@ -260,8 +321,18 @@
   closedRenderer.render(closedScene, closedCamera);
   if (trigger) trigger.classList.add('book-webgl-ready');
 
+  let t = 0;
   function render() {
-    closedBook.rotation.y += reducedMotion ? 0 : .0012;
+    t += 0.016;
+    if (!reducedMotion) {
+      // one shared candlelit flicker across both scenes
+      const flicker = 1.15 + Math.sin(t * 6) * 0.08 + Math.sin(t * 13) * 0.04;
+      keyLights.forEach(l => { l.intensity = flicker; });
+      // the closed book gets a slow idle bob, like it's resting on a
+      // slightly uneven table rather than floating
+      closedBook.position.y = closedRestY + Math.sin(t * 0.9) * 0.02;
+      closedBook.rotation.y += 0.0012;
+    }
     closedRenderer.render(closedScene, closedCamera);
     if (isOpen || turning) fullRenderer.render(fullScene, fullCamera);
     requestAnimationFrame(render);
