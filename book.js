@@ -1,5 +1,6 @@
-// Physical Three.js chronicle. The small renderer keeps a closed book beside
-// the table; the full-screen renderer opens it and turns real page meshes.
+// Physical Three.js chronicle. The closed book is the menu trigger; the
+// HTML layer becomes the interactive open book. Three.js supplies ambience
+// and the optional physical page-turn effect without sitting above the UI.
 (function setupChronicleBook() {
   const closedCanvas = document.getElementById('bookClosedScene');
   const fullCanvas = document.getElementById('bookFullscreenScene');
@@ -12,22 +13,68 @@
   const gold = 0xe0b65f;
   const paper = 0xe8d5a7;
 
-  // The HTML book is the interactive layer. Keep the decorative cover from
-  // blocking buttons/inputs, and hide its mirrored back when it swings open.
+  // IMPORTANT: styles.css has the old slide-out drawer rules. Those rules
+  // come after the inline <style> in party.html, so the old drawer transform,
+  // width and padding would otherwise win. These rules intentionally live
+  // after all page styles and make the chronicle a full-screen book.
   const interactionStyle = document.createElement('style');
   interactionStyle.textContent = `
-    .book-front-cover {
+    .drawer.table-notebook,
+    .drawer.table-notebook.open {
+      position: fixed !important;
+      inset: 0 !important;
+      left: 0 !important;
+      top: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100vw !important;
+      max-width: none !important;
+      height: 100vh !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      transform: none !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      background: transparent !important;
+      overflow: visible !important;
+    }
+    .drawer.table-notebook:not(.open) {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    .drawer.table-notebook.open {
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+    }
+    .table-notebook .book-stage {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      display: grid !important;
+      place-items: center !important;
+      pointer-events: none !important;
+    }
+    .table-notebook .book-volume {
+      pointer-events: auto !important;
+    }
+    .table-notebook .book-front-cover {
       backface-visibility: hidden !important;
       -webkit-backface-visibility: hidden !important;
       pointer-events: none !important;
     }
-    .book-page-block {
+    .table-notebook .book-page-block {
       pointer-events: auto !important;
     }
-    .book-page-block button,
-    .book-page-block a,
-    .book-page-block input,
-    .book-page-block .notebook-page {
+    .table-notebook .book-page-block button,
+    .table-notebook .book-page-block a,
+    .table-notebook .book-page-block input,
+    .table-notebook .book-page-block .notebook-page {
       pointer-events: auto !important;
     }
     .table-notebook.open .book-front-cover {
@@ -43,9 +90,6 @@
     return renderer;
   }
 
-  // Both scenes share one warm key light that flickers gently, like the
-  // dice tray's torch, so the whole site feels lit from the same source
-  // rather than each piece having its own flat studio lighting.
   const keyLights = [];
   function addLights(scene) {
     scene.add(new THREE.HemisphereLight(0xffe5bd, 0x25150f, 1.1));
@@ -101,7 +145,7 @@
     group.add(pin);
   }
 
-  // Closed tabletop book.
+  // Closed tabletop book renderer.
   const closedRenderer = rendererFor(closedCanvas);
   const closedScene = new THREE.Scene();
   const closedCamera = new THREE.PerspectiveCamera(34, 1.45, .1, 30);
@@ -125,7 +169,8 @@
   closedScene.add(closedBook);
   const closedRestY = closedBook.position.y;
 
-  // Full open book: two covers, stacked paper, and a separate turning leaf.
+  // Decorative Three.js open-book scene. The HTML book is intentionally the
+  // interactive version because HTML inputs/buttons must remain clickable.
   const fullRenderer = rendererFor(fullCanvas);
   const fullScene = new THREE.Scene();
   const fullCamera = new THREE.PerspectiveCamera(34, 1.65, .1, 50);
