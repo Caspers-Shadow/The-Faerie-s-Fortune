@@ -12,6 +12,30 @@
   const gold = 0xe0b65f;
   const paper = 0xe8d5a7;
 
+  // The HTML book is the interactive layer. Keep the decorative cover from
+  // blocking buttons/inputs, and hide its mirrored back when it swings open.
+  const interactionStyle = document.createElement('style');
+  interactionStyle.textContent = `
+    .book-front-cover {
+      backface-visibility: hidden !important;
+      -webkit-backface-visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    .book-page-block {
+      pointer-events: auto !important;
+    }
+    .book-page-block button,
+    .book-page-block a,
+    .book-page-block input,
+    .book-page-block .notebook-page {
+      pointer-events: auto !important;
+    }
+    .table-notebook.open .book-front-cover {
+      transform: rotateY(-180deg) translateZ(18px) !important;
+    }
+  `;
+  document.head.appendChild(interactionStyle);
+
   function rendererFor(canvas, alpha = true) {
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -63,8 +87,6 @@
     group.add(border);
   }
 
-  // A leather strap with a small buckle, running across the closed cover.
-  // Real journals like this almost always have one holding it shut.
   function addClasp(group, width, y) {
     const strap = new THREE.Mesh(new THREE.BoxGeometry(.22, .04, 2.0), new THREE.MeshStandardMaterial({ color: leatherDark, roughness: .6 }));
     strap.position.set(width * .3, y + .02, 0);
@@ -136,8 +158,6 @@
   spine.position.y = -.05;
   openBook.add(spine);
 
-  // A soft shadow under the whole open book, grounding it on the table
-  // the same way the closed book already has one.
   const openShadow = new THREE.Mesh(new THREE.PlaneGeometry(pageW * 2.5, pageH * 1.4), shadowMaterial(.3));
   openShadow.rotation.x = -Math.PI / 2;
   openShadow.position.y = -.42;
@@ -190,7 +210,6 @@
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // gutter shadow: a soft dark edge on whichever side sits at the spine
     const gutterGrad = ctx.createLinearGradient(side === 'left' ? canvas.width : 0, 0, side === 'left' ? canvas.width - 90 : 90, 0);
     gutterGrad.addColorStop(0, 'rgba(40,20,8,0.28)');
     gutterGrad.addColorStop(1, 'rgba(40,20,8,0)');
@@ -207,7 +226,6 @@
     ctx.font = '700 46px Georgia';
     ctx.fillText(data?.title || 'The Party Chronicle', x, 115);
 
-    // a hand-drawn-feeling rule under the title instead of a straight one
     ctx.strokeStyle = 'rgba(85,53,29,.55)';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
@@ -244,7 +262,6 @@
     ctx.textAlign = 'center';
     ctx.fillText(`${data?.page || 1} / ${data?.total || 1}`, 450, 1175);
 
-    // faint deckled vignette so the page doesn't read as a flat cut rectangle
     const vignette = ctx.createRadialGradient(450, 620, 500, 450, 620, 720);
     vignette.addColorStop(0, 'rgba(0,0,0,0)');
     vignette.addColorStop(1, 'rgba(60,35,15,0.16)');
@@ -282,7 +299,6 @@
       const p = Math.min((now - start) / duration, 1);
       const eased = .5 - Math.cos(p * Math.PI) / 2;
       turningPivot.rotation.z = from + (to - from) * eased;
-      // A magazine page bows upward halfway through its travel.
       const positions = turningGeometry.attributes.position;
       for (let i = 0; i < positions.count; i++) {
         const x = positions.getX(i);
@@ -325,11 +341,8 @@
   function render() {
     t += 0.016;
     if (!reducedMotion) {
-      // one shared candlelit flicker across both scenes
       const flicker = 1.15 + Math.sin(t * 6) * 0.08 + Math.sin(t * 13) * 0.04;
       keyLights.forEach(l => { l.intensity = flicker; });
-      // the closed book gets a slow idle bob, like it's resting on a
-      // slightly uneven table rather than floating
       closedBook.position.y = closedRestY + Math.sin(t * 0.9) * 0.02;
       closedBook.rotation.y += 0.0012;
     }
