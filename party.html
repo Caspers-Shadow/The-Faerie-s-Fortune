@@ -7,286 +7,27 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=13">
+<link rel="stylesheet" href="styles.css?v=14">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Cpolygon points=%2750,6 90,30 90,70 50,94 10,70 10,30%27 fill=%27%23E8B93E%27 stroke=%27%238C6B32%27 stroke-width=%274%27/%3E%3Ctext x=%2750%27 y=%2763%27 font-family=%27Georgia%27 font-weight=%27900%27 font-size=%2740%27 text-anchor=%27middle%27 fill=%27%231C1712%27%3E20%3C/text%3E%3C/svg%3E">
 <style>
-/* ========================================================================
-   FAERIE'S FORTUNE — PHYSICAL CHRONICLE
-   The chronicle is intentionally a large, tactile object rather than a
-   conventional hamburger menu. The book itself is the menu.
-   ======================================================================== */
-.book-button,
-.menu-btn.book-button {
-  position: fixed;
-  left: clamp(24px, 5vw, 82px);
-  right: auto;
-  bottom: clamp(24px, 6vh, 70px);
-  top: auto;
-  z-index: 30;
-  width: clamp(230px, 19vw, 320px);
-  height: clamp(290px, 39vh, 430px);
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  perspective: 1200px;
-  filter: drop-shadow(22px 26px 20px rgba(0,0,0,.42));
-}
-.book-button canvas { display:none; }
-.book-button .book-fallback {
-  position:absolute;
-  inset:0;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:18px;
-  color:#efd8a2;
-  font-family:var(--display);
-  letter-spacing:.09em;
-  text-transform:uppercase;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(225,184,93,.17), transparent 23%),
-    repeating-linear-gradient(105deg, transparent 0 15px, rgba(255,255,255,.025) 16px 17px),
-    linear-gradient(135deg,#2a1410 0%,#6d3827 42%,#4a2419 75%,#21100d 100%);
-  border:3px double #b88c4e;
-  border-left:15px solid #24100d;
-  border-radius:7px 15px 15px 7px;
-  box-shadow:inset 0 0 0 8px rgba(18,7,5,.38), inset 0 0 38px rgba(0,0,0,.48), 7px 8px 0 #2b130f;
-  transform:rotate(-4deg) rotateY(-8deg);
-  transform-origin:left center;
-  transition:transform .45s cubic-bezier(.2,.8,.2,1), filter .45s ease;
-}
-.book-button:hover .book-fallback,
-.book-button:focus-visible .book-fallback {
-  transform:translateY(-8px) rotate(-3deg) rotateY(-10deg) scale(1.025);
-  filter:brightness(1.08);
-}
-.book-button .book-fallback::before {
-  content:'';
-  position:absolute;
-  inset:18px;
-  border:1px solid rgba(224,188,112,.58);
-  box-shadow:inset 0 0 0 5px rgba(76,38,24,.42);
-  pointer-events:none;
-}
-.fallback-rune {
-  display:grid;
-  place-items:center;
-  width:82px;
-  height:82px;
-  border:2px solid #c99c54;
-  border-radius:50%;
-  box-shadow:0 0 0 7px rgba(76,39,25,.75),0 0 26px rgba(232,190,99,.2);
-  color:#f0cf83;
-  font-size:38px;
-}
-
-/* Full-screen reader */
-body.book-open { overflow:hidden; }
-.drawer-overlay {
-  position:fixed;
-  inset:0;
-  z-index:70;
-  background:radial-gradient(circle at 38% 48%,rgba(104,74,39,.2),transparent 35%),rgba(5,4,3,.9);
-  backdrop-filter:blur(9px);
-  opacity:0;
-  transition:opacity .35s ease;
-}
-.drawer-overlay.open { opacity:1; }
-.table-notebook,
-.table-notebook.open {
-  position:fixed;
-  inset:0;
-  z-index:71;
-  width:auto;
-  height:auto;
-  padding:0;
-  background:transparent;
-  border:0;
-  border-radius:0;
-  box-shadow:none;
-  overflow:hidden;
-  opacity:0;
-  visibility:hidden;
-  pointer-events:none;
-  transform:none;
-  transition:opacity .25s ease,visibility 0s linear .8s;
-}
-.table-notebook.open {
-  opacity:1;
-  visibility:visible;
-  pointer-events:auto;
-  transition:opacity .25s ease,visibility 0s;
-}
-.book-stage {
-  width:100%;
-  height:100%;
-  display:grid;
-  place-items:center;
-  padding:5vh 4vw;
-  perspective:1800px;
-}
-.book-volume {
-  position:relative;
-  width:min(82vw,1100px);
-  height:min(82vh,760px);
-  transform-style:preserve-3d;
-  transform:translateX(-32vw) rotateX(8deg) rotateZ(-4deg) scale(.62);
-  transition:transform 1s cubic-bezier(.16,.82,.18,1);
-}
-.table-notebook.open .book-volume {
-  transform:translateX(0) rotateX(2deg) rotateZ(0) scale(1);
-}
-.book-fullscreen-canvas { display:none !important; }
-
-/* The open reader has a real left/right spread. */
-.book-page-block {
-  position:absolute;
-  inset:0;
-  z-index:2;
-  display:flex;
-  flex-direction:column;
-  min-height:0;
-  padding:28px 38px 30px;
-  color:#38281b;
-  background:
-    repeating-linear-gradient(90deg,rgba(111,79,41,.06) 0 1px,transparent 1px 5px),
-    linear-gradient(90deg,#c4a56e,#ead4a1 7%,#f0dfb4 50%,#ead4a1 93%,#c3a46c);
-  border:2px solid #7e5a32;
-  border-radius:10px;
-  box-shadow:0 25px 55px rgba(0,0,0,.62),inset 0 0 45px rgba(76,43,17,.13);
-  transform:translateZ(8px);
-}
-.book-page-block::before {
-  content:'';
-  position:absolute;
-  inset:12px;
-  border:1px solid rgba(109,73,33,.28);
-  border-radius:6px;
-  pointer-events:none;
-}
-.book-page-block::after {
-  content:'';
-  position:absolute;
-  top:0;
-  bottom:0;
-  left:50%;
-  width:26px;
-  transform:translateX(-50%);
-  background:linear-gradient(90deg,transparent,rgba(65,37,15,.17),transparent);
-  pointer-events:none;
-}
-.book-page-block > * { position:relative; z-index:2; }
-.book-page-block .drawer-head { margin:0 0 8px; }
-.book-page-block .drawer-title { color:#5f3b20; font-size:18px; }
-.book-page-block .drawer-close { color:#6d4828; }
-.book-page-block .drawer-nav { margin:0 0 8px; }
-.book-page-block .drawer-nav a,
-.book-page-block .drawer-nav button { color:#795635; }
-.book-page-block .drawer-divider { background:rgba(105,70,32,.35); margin:0 0 8px; }
-.book-page-block .notebook { flex:1; min-height:0; display:flex; flex-direction:column; }
-.book-page-block .party-form { margin:0 0 8px; }
-.book-page-block .party-form input[type="text"] {
-  color:#3b2a1a;
-  background:rgba(255,250,227,.34);
-  border-bottom:1px solid #987348;
-}
-.book-page-block .party-form input[type="text"]::placeholder { color:#8b6b48; }
-.book-page-block .die-btn { color:#5c381e; border-bottom-color:#987348; }
-.book-page-block .link-btn { color:#6e4827; }
-.book-page-block .page-indicator { color:#7b5a38; }
-
-/* Make the actual session page feel like a sheet hinged into the spine. */
-.book-page-block .notebook-page {
-  flex:1;
-  min-height:0;
-  width:calc(50% - 28px);
-  margin:4px 0 10px auto;
-  padding:42px 48px;
-  overflow-y:auto;
-  background:
-    repeating-linear-gradient(transparent,transparent 31px,rgba(91,61,26,.13) 32px),
-    linear-gradient(90deg,rgba(94,59,24,.16),transparent 10%),
-    #eddbaf;
-  border:1px solid rgba(117,79,39,.26);
-  box-shadow:-12px 12px 22px rgba(66,39,15,.18),inset 18px 0 25px rgba(73,43,16,.08),inset -5px 0 10px rgba(73,43,16,.06);
-  transform-origin:left center;
-  backface-visibility:hidden;
-  transform-style:preserve-3d;
-}
-.book-page-block .notebook-page::before,
-.book-page-block .notebook-page::after { display:none; }
-.book-page-block .page-session-title { color:#5c391f; font-size:25px; }
-.book-page-block .page-session-date { color:#8a6840; }
-.book-page-block .page-notes li { line-height:1.55; }
-
-/* The other half of the spread acts as the decorative inside cover. */
-.book-page-block .notebook::before {
-  content:'The Chronicle\A\AKeep the tales, victories, disasters,\Aand questionable decisions of the party.';
-  white-space:pre;
-  position:absolute;
-  left:4%;
-  top:13%;
-  width:42%;
-  height:70%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  padding:50px;
-  box-sizing:border-box;
-  color:#75502e;
-  font:italic 23px/1.7 'Crimson Pro',Georgia,serif;
-  background:linear-gradient(90deg,rgba(208,183,135,.4),rgba(238,218,178,.72));
-  border-right:1px solid rgba(110,73,35,.16);
-  box-shadow:inset -18px 0 25px rgba(69,40,15,.09);
-  pointer-events:none;
-}
-
-/* Every session change uses a proper hinged-page turn rather than a fade. */
-.book-page-block .notebook-page.turning-next { animation:chronicleFlipNext .68s cubic-bezier(.32,.08,.2,1) both; }
-.book-page-block .notebook-page.turning-prev { animation:chronicleFlipPrev .68s cubic-bezier(.32,.08,.2,1) both; }
-.book-page-block .notebook-page.arriving-next { animation:chronicleArriveNext .36s ease-out both; }
-.book-page-block .notebook-page.arriving-prev { animation:chronicleArrivePrev .36s ease-out both; }
-@keyframes chronicleFlipNext {
-  0% { transform:rotateY(0) translateX(0); filter:brightness(1); }
-  48% { transform:rotateY(-88deg) translateX(-2%); filter:brightness(.86); }
-  100% { transform:rotateY(-178deg) translateX(-5%); filter:brightness(.72); }
-}
-@keyframes chronicleFlipPrev {
-  0% { transform:rotateY(0) translateX(0); filter:brightness(1); }
-  48% { transform:rotateY(88deg) translateX(2%); filter:brightness(.86); }
-  100% { transform:rotateY(178deg) translateX(5%); filter:brightness(.72); }
-}
-@keyframes chronicleArriveNext {
-  from { transform:rotateY(82deg) translateX(5%); opacity:.7; }
-  to { transform:rotateY(0) translateX(0); opacity:1; }
-}
-@keyframes chronicleArrivePrev {
-  from { transform:rotateY(-82deg) translateX(-5%); opacity:.7; }
-  to { transform:rotateY(0) translateX(0); opacity:1; }
-}
-
-@media (max-width:900px) {
-  .game-shell { margin-right:0; }
-  .book-button,.menu-btn.book-button { width:190px; height:250px; left:22px; bottom:22px; }
-  .book-volume { width:92vw; height:82vh; }
-  .book-page-block { padding:22px 20px; }
-  .book-page-block .notebook-page { width:calc(50% - 14px); padding:28px 24px; }
-  .book-page-block .notebook::before { font-size:18px; padding:25px; }
-}
-@media (max-width:620px) {
-  .book-button,.menu-btn.book-button { width:145px; height:190px; }
-  .book-volume { width:96vw; height:88vh; }
-  .book-page-block { padding:18px 14px; overflow:hidden; }
-  .book-page-block::after,.book-page-block .notebook::before { display:none; }
-  .book-page-block .notebook-page { width:100%; margin-left:0; padding:28px 22px; }
-  .book-page-block .drawer-nav { gap:8px; flex-wrap:wrap; }
-}
-@media (prefers-reduced-motion:reduce) {
-  .book-volume,.book-fallback,.notebook-page { transition:none !important; animation:none !important; }
-}
+/* The chronicle is the menu: a large physical book resting off the left side. */
+.book-button,.menu-btn.book-button{position:fixed;left:clamp(24px,5vw,82px);right:auto;bottom:clamp(24px,6vh,70px);top:auto;z-index:30;width:clamp(230px,19vw,320px);height:clamp(290px,39vh,430px);padding:0;border:0;background:transparent;cursor:pointer;perspective:1200px;filter:drop-shadow(22px 26px 20px rgba(0,0,0,.42))}
+.book-button canvas{display:none}.book-button .book-fallback{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#efd8a2;font-family:var(--display);letter-spacing:.09em;text-transform:uppercase;background:radial-gradient(circle at 50% 42%,rgba(225,184,93,.17),transparent 23%),repeating-linear-gradient(105deg,transparent 0 15px,rgba(255,255,255,.025) 16px 17px),linear-gradient(135deg,#2a1410 0%,#6d3827 42%,#4a2419 75%,#21100d 100%);border:3px double #b88c4e;border-left:15px solid #24100d;border-radius:7px 15px 15px 7px;box-shadow:inset 0 0 0 8px rgba(18,7,5,.38),inset 0 0 38px rgba(0,0,0,.48),7px 8px 0 #2b130f;transform:rotate(-4deg) rotateY(-8deg);transform-origin:left center;transition:transform .45s cubic-bezier(.2,.8,.2,1),filter .45s ease}
+.book-button:hover .book-fallback,.book-button:focus-visible .book-fallback{transform:translateY(-8px) rotate(-3deg) rotateY(-10deg) scale(1.025);filter:brightness(1.08)}
+.book-button .book-fallback:before{content:'';position:absolute;inset:18px;border:1px solid rgba(224,188,112,.58);box-shadow:inset 0 0 0 5px rgba(76,38,24,.42);pointer-events:none}.fallback-rune{display:grid;place-items:center;width:82px;height:82px;border:2px solid #c99c54;border-radius:50%;box-shadow:0 0 0 7px rgba(76,39,25,.75),0 0 26px rgba(232,190,99,.2);color:#f0cf83;font-size:38px}
+body.book-open{overflow:hidden}.drawer-overlay{position:fixed;inset:0;z-index:70;background:radial-gradient(circle at 38% 48%,rgba(104,74,39,.2),transparent 35%),rgba(5,4,3,.9);backdrop-filter:blur(9px);opacity:0;transition:opacity .35s ease}.drawer-overlay.open{opacity:1}
+.table-notebook,.table-notebook.open{position:fixed;inset:0;z-index:71;width:auto;height:auto;padding:0;background:transparent;border:0;border-radius:0;box-shadow:none;overflow:hidden;opacity:0;visibility:hidden;pointer-events:none;transform:none;transition:opacity .25s ease,visibility 0s linear .85s}.table-notebook.open{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .25s ease,visibility 0s}
+.book-stage{width:100%;height:100%;display:grid;place-items:center;padding:5vh 4vw;perspective:1800px}.book-volume{position:relative;width:min(82vw,1100px);height:min(82vh,760px);transform-style:preserve-3d;transform:translateX(-32vw) rotateX(8deg) rotateZ(-4deg) scale(.62);transition:transform 1s cubic-bezier(.16,.82,.18,1)}.table-notebook.open .book-volume{transform:translateX(0) rotateX(2deg) rotateZ(0) scale(1)}.book-fullscreen-canvas{display:none!important}
+/* Physical front cover. It is hinged at the spine and swings away when the menu opens. */
+.book-front-cover{position:absolute;inset:-12px -12px -12px calc(50% - 14px);z-index:8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:50px;color:#efdaaa;background:radial-gradient(circle at 50% 43%,rgba(207,169,91,.15),transparent 25%),repeating-linear-gradient(104deg,transparent 0 13px,rgba(255,255,255,.018) 14px 15px),linear-gradient(125deg,#321914,#6b3927 38%,#452219 75%,#25120f);border:3px double #b88c4e;border-left:16px solid #29130f;border-radius:8px 14px 14px 8px;box-shadow:16px 24px 38px rgba(0,0,0,.6),inset 0 0 0 8px rgba(20,9,7,.42),inset 0 0 46px rgba(0,0,0,.48);transform-origin:left center;transform:rotateY(0deg) translateZ(18px);transform-style:preserve-3d;backface-visibility:visible;transition:transform 1.05s cubic-bezier(.2,.72,.15,1) .15s}
+.table-notebook.open .book-front-cover{transform:rotateY(-176deg) translateZ(18px)}.book-front-cover:after{content:'';position:absolute;inset:20px;border:1px solid rgba(224,188,112,.54);box-shadow:inset 0 0 0 5px rgba(86,45,28,.48);pointer-events:none}.book-front-cover strong{max-width:360px;font-family:var(--display);font-size:clamp(22px,3vw,36px);font-weight:500;line-height:1.25;letter-spacing:.06em;text-align:center;text-shadow:0 2px 4px #160a08}.book-front-cover>span:last-child{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase}.cover-rune{display:grid;place-items:center;width:92px;height:92px;color:#f0cf83;border:2px solid #c99c54;border-radius:50%;box-shadow:0 0 0 8px rgba(85,44,28,.82),0 0 24px rgba(232,190,99,.24);font-size:38px}.cover-corner{position:absolute;width:52px;height:52px;border-color:#c29754;opacity:.75}.corner-one{top:24px;left:29px;border-top:2px solid;border-left:2px solid}.corner-two{top:24px;right:24px;border-top:2px solid;border-right:2px solid}.corner-three{bottom:24px;left:29px;border-bottom:2px solid;border-left:2px solid}.corner-four{bottom:24px;right:24px;border-bottom:2px solid;border-right:2px solid}
+/* Open spread. Left page is the inside cover; right page is the current session. */
+.book-page-block{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;min-height:0;padding:28px 38px 30px;color:#38281b;background:repeating-linear-gradient(90deg,rgba(111,79,41,.06) 0 1px,transparent 1px 5px),linear-gradient(90deg,#c4a56e,#ead4a1 7%,#f0dfb4 50%,#ead4a1 93%,#c3a46c);border:2px solid #7e5a32;border-radius:10px;box-shadow:0 25px 55px rgba(0,0,0,.62),inset 0 0 45px rgba(76,43,17,.13);transform:translateZ(8px)}.book-page-block:before{content:'';position:absolute;inset:12px;border:1px solid rgba(109,73,33,.28);border-radius:6px;pointer-events:none}.book-page-block:after{content:'';position:absolute;top:0;bottom:0;left:50%;width:26px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,rgba(65,37,15,.17),transparent);pointer-events:none}.book-page-block>*{position:relative;z-index:2}.book-page-block .drawer-head{margin:0 0 8px}.book-page-block .drawer-title{color:#5f3b20;font-size:18px}.book-page-block .drawer-close{color:#6d4828}.book-page-block .drawer-nav{margin:0 0 8px}.book-page-block .drawer-nav a,.book-page-block .drawer-nav button{color:#795635}.book-page-block .drawer-divider{background:rgba(105,70,32,.35);margin:0 0 8px}.book-page-block .notebook{flex:1;min-height:0;display:flex;flex-direction:column}.book-page-block .party-form{margin:0 0 8px}.book-page-block .party-form input[type=text]{color:#3b2a1a;background:rgba(255,250,227,.34);border-bottom:1px solid #987348}.book-page-block .party-form input[type=text]::placeholder{color:#8b6b48}.book-page-block .die-btn{color:#5c381e;border-bottom-color:#987348}.book-page-block .link-btn{color:#6e4827}.book-page-block .page-indicator{color:#7b5a38}.book-page-block .notebook-page{flex:1;min-height:0;width:calc(50% - 28px);margin:4px 0 10px auto;padding:42px 48px;overflow-y:auto;background:repeating-linear-gradient(transparent,transparent 31px,rgba(91,61,26,.13) 32px),linear-gradient(90deg,rgba(94,59,24,.16),transparent 10%),#eddbaf;border:1px solid rgba(117,79,39,.26);box-shadow:-12px 12px 22px rgba(66,39,15,.18),inset 18px 0 25px rgba(73,43,16,.08),inset -5px 0 10px rgba(73,43,16,.06);transform-origin:left center;backface-visibility:hidden;transform-style:preserve-3d}.book-page-block .notebook-page:before,.book-page-block .notebook-page:after{display:none}.book-page-block .page-session-title{color:#5c391f;font-size:25px}.book-page-block .page-session-date{color:#8a6840}.book-page-block .page-notes li{line-height:1.55}
+.book-page-block .notebook:before{content:'The Chronicle\\A\\AKeep the tales, victories, disasters,\\Aand questionable decisions of the party.';white-space:pre;position:absolute;left:4%;top:13%;width:42%;height:70%;display:flex;align-items:center;justify-content:center;text-align:center;padding:50px;box-sizing:border-box;color:#75502e;font:italic 23px/1.7 'Crimson Pro',Georgia,serif;background:linear-gradient(90deg,rgba(208,183,135,.4),rgba(238,218,178,.72));border-right:1px solid rgba(110,73,35,.16);box-shadow:inset -18px 0 25px rgba(69,40,15,.09);pointer-events:none}
+/* Each session is a physical leaf. Previous/next use a hinged Y rotation. */
+.book-page-block .notebook-page.turning-next{animation:chronicleFlipNext .68s cubic-bezier(.32,.08,.2,1) both}.book-page-block .notebook-page.turning-prev{animation:chronicleFlipPrev .68s cubic-bezier(.32,.08,.2,1) both}.book-page-block .notebook-page.arriving-next{animation:chronicleArriveNext .36s ease-out both}.book-page-block .notebook-page.arriving-prev{animation:chronicleArrivePrev .36s ease-out both}
+@keyframes chronicleFlipNext{0%{transform:rotateY(0) translateX(0);filter:brightness(1)}48%{transform:rotateY(-88deg) translateX(-2%);filter:brightness(.86)}100%{transform:rotateY(-178deg) translateX(-5%);filter:brightness(.72)}}@keyframes chronicleFlipPrev{0%{transform:rotateY(0) translateX(0);filter:brightness(1)}48%{transform:rotateY(88deg) translateX(2%);filter:brightness(.86)}100%{transform:rotateY(178deg) translateX(5%);filter:brightness(.72)}}@keyframes chronicleArriveNext{from{transform:rotateY(82deg) translateX(5%);opacity:.7}to{transform:rotateY(0) translateX(0);opacity:1}}@keyframes chronicleArrivePrev{from{transform:rotateY(-82deg) translateX(-5%);opacity:.7}to{transform:rotateY(0) translateX(0);opacity:1}}
+@media(max-width:900px){.game-shell{margin-right:0}.book-button,.menu-btn.book-button{width:190px;height:250px;left:22px;bottom:22px}.book-volume{width:92vw;height:82vh}.book-page-block{padding:22px 20px}.book-page-block .notebook-page{width:calc(50% - 14px);padding:28px 24px}.book-page-block .notebook:before{font-size:18px;padding:25px}}@media(max-width:620px){.book-button,.menu-btn.book-button{width:145px;height:190px}.book-volume{width:96vw;height:88vh}.book-page-block{padding:18px 14px;overflow:hidden}.book-page-block:after,.book-page-block .notebook:before{display:none}.book-page-block .notebook-page{width:100%;margin-left:0;padding:28px 22px}}@media(prefers-reduced-motion:reduce){.book-volume,.book-fallback,.book-front-cover,.notebook-page{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
@@ -296,6 +37,15 @@ body.book-open { overflow:hidden; }
   <div class="book-stage">
     <div class="book-volume" id="bookVolume">
       <canvas id="bookFullscreenScene" class="book-fullscreen-canvas" aria-hidden="true"></canvas>
+
+      <div class="book-front-cover" aria-hidden="true">
+        <span class="cover-corner corner-one"></span><span class="cover-corner corner-two"></span>
+        <span class="cover-corner corner-three"></span><span class="cover-corner corner-four"></span>
+        <span class="cover-rune">✦</span>
+        <strong>The Chronicle of the Party</strong>
+        <span>Where every adventure is remembered</span>
+      </div>
+
       <div class="book-page-block">
         <div class="drawer-head">
           <span class="drawer-title">The Chronicle of the Party</span>
@@ -306,98 +56,18 @@ body.book-open { overflow:hidden; }
           <button id="drawerLogout">Log Out</button>
         </nav>
         <div class="drawer-divider"></div>
-
         <div class="notebook">
-          <div class="party-form">
-            <input type="text" id="noteInput" placeholder="Write a note…" maxlength="200">
-            <button class="die-btn" id="noteBtn">Add</button>
-          </div>
-          <div class="notebook-page" id="notebookPage">
-            <p class="page-empty">Loading…</p>
-          </div>
-          <div class="notebook-nav">
-            <button class="link-btn" id="pagePrev">‹ Previous session</button>
-            <span class="page-indicator" id="pageIndicator"></span>
-            <button class="link-btn" id="pageNext">Next session ›</button>
-          </div>
+          <div class="party-form"><input type="text" id="noteInput" placeholder="Write a note…" maxlength="200"><button class="die-btn" id="noteBtn">Add</button></div>
+          <div class="notebook-page" id="notebookPage"><p class="page-empty">Loading…</p></div>
+          <div class="notebook-nav"><button class="link-btn" id="pagePrev">‹ Previous session</button><span class="page-indicator" id="pageIndicator"></span><button class="link-btn" id="pageNext">Next session ›</button></div>
         </div>
       </div>
     </div>
   </div>
 </aside>
 
-<div class="game-shell">
-  <header class="game-bar">
-    <a class="game-brand" href="dashboard.html" aria-label="Back to your parties">
-      <span class="brand-die"><span>20</span></span>
-      <span>The Faerie's Fortune</span>
-    </a>
-    <div class="theme-select" id="themeSelect" role="group" aria-label="Choose a play mat">
-      <span class="theme-label">Play mat</span>
-    </div>
-  </header>
+<div class="game-shell"><header class="game-bar"><a class="game-brand" href="dashboard.html" aria-label="Back to your parties"><span class="brand-die"><span>20</span></span><span>The Faerie's Fortune</span></a><div class="theme-select" id="themeSelect" role="group" aria-label="Choose a play mat"><span class="theme-label">Play mat</span></div></header><div class="room-layout"><main class="play-mat"><div id="ambience"></div><div class="stage"><header class="party-heading"><div><p class="eyebrow">Tonight's table</p><h1 id="partyTitle">The Faerie's <span>Fortune</span></h1></div><div class="party-panel" id="partyInfo"><p class="party-hint">Loading party…</p></div></header><div class="roll-workspace"><div class="dice-select" id="diceSelect" role="tablist" aria-label="Choose a die"></div><div class="tray-column"><div class="tray-wrap" id="trayWrap"><div class="tray-rim" id="tray" role="button" tabindex="0" aria-label="Roll the die"><div class="tray-felt"><canvas id="scene" aria-hidden="true"></canvas></div></div><div class="result-hud" id="resultHud" aria-live="polite">-</div></div><p class="hint" id="hint">Click the tray, or press Enter / Space, to roll</p></div></div><section class="ledger"><div class="auth-row ledger-head"><h2 id="ledgerHeading">Recent casts</h2><button class="link-btn" id="refreshBtn">Refresh</button></div><ul id="log"><li class="empty">Loading…</li></ul></section></div><button class="menu-btn book-button" id="hamburgerBtn" aria-expanded="false" aria-controls="drawer" aria-label="Open the party chronicle"><span class="book-fallback" aria-hidden="true"><span class="fallback-rune">✦</span><span>Party Chronicle</span></span><canvas id="bookClosedScene" aria-hidden="true"></canvas><span class="sr-only">Open party chronicle</span></button></main></div></div>
 
-  <div class="room-layout">
-    <main class="play-mat">
-      <div id="ambience"></div>
-      <div class="stage">
-        <header class="party-heading">
-          <div>
-            <p class="eyebrow">Tonight's table</p>
-            <h1 id="partyTitle">The Faerie's <span>Fortune</span></h1>
-          </div>
-          <div class="party-panel" id="partyInfo">
-            <p class="party-hint">Loading party…</p>
-          </div>
-        </header>
-
-        <div class="roll-workspace">
-          <div class="dice-select" id="diceSelect" role="tablist" aria-label="Choose a die"></div>
-
-          <div class="tray-column">
-            <div class="tray-wrap" id="trayWrap">
-              <div class="tray-rim" id="tray" role="button" tabindex="0" aria-label="Roll the die">
-                <div class="tray-felt">
-                  <canvas id="scene" aria-hidden="true"></canvas>
-                </div>
-              </div>
-              <div class="result-hud" id="resultHud" aria-live="polite">-</div>
-            </div>
-            <p class="hint" id="hint">Click the tray, or press Enter / Space, to roll</p>
-          </div>
-        </div>
-
-        <section class="ledger">
-          <div class="auth-row ledger-head">
-            <h2 id="ledgerHeading">Recent casts</h2>
-            <button class="link-btn" id="refreshBtn">Refresh</button>
-          </div>
-          <ul id="log"><li class="empty">Loading…</li></ul>
-        </section>
-      </div>
-      <button class="menu-btn book-button" id="hamburgerBtn" aria-expanded="false" aria-controls="drawer" aria-label="Open the party chronicle">
-        <span class="book-fallback" aria-hidden="true">
-          <span class="fallback-rune">✦</span>
-          <span>Party Chronicle</span>
-        </span>
-        <canvas id="bookClosedScene" aria-hidden="true"></canvas>
-        <span class="sr-only">Open party chronicle</span>
-      </button>
-    </main>
-  </div>
-</div>
-
-<!-- Accounts -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=5"></script>
-<script src="supabase-client.js?v=5"></script>
-
-<!-- 3D dice -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="dice.js?v=5"></script>
-<script src="book.js?v=13"></script>
-
-<!-- This party's roster, sessions, and shared log -->
-<script src="party-room.js?v=13"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js?v=5"></script><script src="supabase-client.js?v=5"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script src="dice.js?v=5"></script><script src="book.js?v=14"></script><script src="party-room.js?v=14"></script>
 </body>
 </html>
