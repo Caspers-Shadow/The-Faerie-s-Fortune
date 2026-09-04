@@ -175,19 +175,15 @@
     ctx.textAlign = side === 'left' ? 'right' : 'left';
     const x = side === 'left' ? 775 : 125;
     ctx.font = '700 46px Georgia';
-    ctx.fillText(side === 'left' ? (data?.title || 'The Party Chronicle') : 'Field notes', x, 115);
+    ctx.fillText(data?.title || 'The Party Chronicle', x, 115);
     ctx.font = '22px monospace';
     ctx.fillStyle = '#634521';
-    ctx.fillText(side === 'left' ? (data?.date || '') : 'from this session', x, 158);
+    ctx.fillText(data?.date || '', x, 158);
     ctx.textAlign = 'left';
     ctx.fillStyle = '#3e2a1a';
     let y = 235;
     const notes = data?.notes || [];
-    if (side === 'left') {
-      ctx.font = 'italic 30px Georgia';
-      ctx.fillStyle = '#634521';
-      ctx.fillText(notes.length ? 'Turn the page for session notes.' : 'No notes written in this session.', 125, y);
-    } else if (!notes.length) {
+    if (!notes.length) {
       ctx.font = 'italic 30px Georgia';
       ctx.fillText('No notes written in this session.', 125, y);
     } else {

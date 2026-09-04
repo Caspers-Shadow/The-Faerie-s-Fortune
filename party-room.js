@@ -350,24 +350,32 @@ function renderNotebookPage() {
 }
 
 let pageTurning = false;
+let pageTurningSince = 0;
 function turnNotebookPage(direction) {
+  // Background tabs can throttle animation frames. Recover from a stale turn
+  // lock so the navigation never becomes permanently unresponsive.
+  if (pageTurning && Date.now() - pageTurningSince > 2200) pageTurning = false;
   if (pageTurning) return;
   const nextIndex = pageIndex + direction;
   if (nextIndex < 0 || nextIndex >= bookPages.length) return;
   pageTurning = true;
+  pageTurningSince = Date.now();
   // Commit the destination immediately so an overlapping refresh cannot snap
   // the controls back to the latest session while the 3D page is travelling.
   pageIndex = nextIndex;
   window.dispatchEvent(new CustomEvent('ff:book-turn', { detail: { direction } }));
   const pageEl = document.getElementById('notebookPage');
   pageEl.classList.add(direction > 0 ? 'turning-next' : 'turning-prev');
+  // Update the readable page immediately. The canvas continues its curl while
+  // the DOM content and page counter move to the destination.
+  window.setTimeout(renderNotebookPage, 80);
   setTimeout(() => {
     renderNotebookPage();
     pageEl.classList.remove('turning-next', 'turning-prev');
     pageEl.classList.add(direction > 0 ? 'arriving-next' : 'arriving-prev');
     requestAnimationFrame(() => requestAnimationFrame(() => {
       pageEl.classList.remove('arriving-next', 'arriving-prev');
-      setTimeout(() => { pageTurning = false; }, 340);
+      setTimeout(() => { pageTurning = false; pageTurningSince = 0; }, 340);
     }));
   }, 340);
 }
