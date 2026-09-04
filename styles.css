@@ -1902,3 +1902,14 @@
     cursor: pointer;
   }
   .book-page-block .page-indicator { position: relative; z-index: 101; }
+
+  /* V17 — the printed page number is the only navigation chrome. */
+  .book-page-block .notebook-nav {
+    justify-content: center !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    bottom: 14px !important;
+  }

@@ -238,15 +238,22 @@
     rightPage.material.map = coverTexture('right');
     leftPage.material.needsUpdate = rightPage.material.needsUpdate = true;
   }
-  function setPageData(data) {
-    currentData = data || currentData;
-    if (leftPage.material.map) leftPage.material.map.dispose();
-    if (rightPage.material.map) rightPage.material.map.dispose();
-    leftPage.material.map = pageTexture(currentData, 'left');
-    rightPage.material.map = pageTexture(currentData, 'right');
-    leftPage.material.needsUpdate = rightPage.material.needsUpdate = true;
+  let currentSpread = {
+    left: null,
+    right: currentData,
+  };
+  function replaceMap(mesh, texture) {
+    if (mesh.material.map) mesh.material.map.dispose();
+    mesh.material.map = texture;
+    mesh.material.needsUpdate = true;
   }
-  setPageData(currentData);
+  function setSpreadData(spread) {
+    currentSpread = spread || currentSpread;
+    currentData = currentSpread.right || currentData;
+    replaceMap(leftPage, currentSpread.left?.cover ? coverTexture('left') : pageTexture(currentSpread.left, 'left'));
+    replaceMap(rightPage, pageTexture(currentSpread.right || currentData, 'right'));
+  }
+  setSpreadData(currentSpread);
 
   let turning = false;
   let turningStartedAt = 0;
@@ -260,8 +267,8 @@
     turningStartedAt = performance.now();
     turningPage.visible = true;
     turningPivot.rotation.z = direction > 0 ? 0 : Math.PI;
-    turningPage.material.map = pageTexture(currentData, direction > 0 ? 'right' : 'left');
-    turningPage.material.needsUpdate = true;
+    const turningData = direction > 0 ? currentSpread.right : currentSpread.left;
+    replaceMap(turningPage, turningData?.cover ? coverTexture('left') : pageTexture(turningData || currentData, direction > 0 ? 'right' : 'left'));
     const from = turningPivot.rotation.z;
     const to = direction > 0 ? Math.PI : 0;
     const start = performance.now();
@@ -313,7 +320,8 @@
   window.addEventListener('ff:book-open', () => { isOpen = true; resize(); });
   window.addEventListener('ff:book-close', () => { isOpen = false; });
   window.addEventListener('ff:book-cover', showBackCover);
-  window.addEventListener('ff:book-page', e => setPageData(e.detail));
+  window.addEventListener('ff:book-page', e => setSpreadData({ left: null, right: e.detail }));
+  window.addEventListener('ff:book-spread', e => setSpreadData(e.detail));
   window.addEventListener('ff:book-turn', e => turn(e.detail.direction));
 
   // MOD3-style direct manipulation: click either half of the spread to turn

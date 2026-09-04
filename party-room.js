@@ -306,13 +306,10 @@ async function refreshNotebook() {
 function renderNotebookPage() {
   const pageEl = document.getElementById('notebookPage');
   const indicatorEl = document.getElementById('pageIndicator');
-  const prevBtn = document.getElementById('pagePrev');
-  const nextBtn = document.getElementById('pageNext');
 
   if (bookPages.length === 0) {
     pageEl.innerHTML = '<p class="page-empty">No sessions yet.</p>';
     indicatorEl.textContent = '';
-    prevBtn.disabled = nextBtn.disabled = true;
     return;
   }
 
@@ -332,21 +329,30 @@ function renderNotebookPage() {
   }
   pageEl.innerHTML = html;
 
-  window.dispatchEvent(new CustomEvent('ff:book-page', { detail: {
-    title,
-    date: dateTimeLabel(s.started_at),
-    notes: notes.map(n => ({
+  const pagePayload = (bookPage, physicalPage) => ({
+    title: bookPage.part > 1
+      ? (bookPage.session.label || ('Session ' + bookPage.sessionNumber)) + ' · continued'
+      : (bookPage.session.label || ('Session ' + bookPage.sessionNumber)),
+    date: dateTimeLabel(bookPage.session.started_at),
+    notes: bookPage.notes.map(n => ({
       author: n.user ? n.user.display_name : 'Someone',
       text: n.note_text,
       time: timeLabel(n.created_at),
     })),
-    page: pageIndex + 1,
+    page: physicalPage,
     total: bookPages.length,
-  }}));
+  });
+  const rightPage = {
+    ...pagePayload(page, pageIndex + 1),
+  };
+  const leftPage = pageIndex === 0
+    ? { cover: true, page: 0, total: bookPages.length }
+    : pagePayload(bookPages[pageIndex - 1], pageIndex);
+  window.dispatchEvent(new CustomEvent('ff:book-spread', {
+    detail: { left: leftPage, right: rightPage },
+  }));
 
   indicatorEl.textContent = `Page ${pageIndex + 1} of ${bookPages.length} · Session ${page.sessionNumber}${page.parts > 1 ? ` · part ${page.part}/${page.parts}` : ''}`;
-  prevBtn.disabled = pageIndex === 0;
-  nextBtn.disabled = pageIndex === bookPages.length - 1;
 }
 
 let pageTurning = false;
@@ -380,12 +386,7 @@ function turnNotebookPage(direction) {
   }, 340);
 }
 
-// book.js listens on the transformed canvas, but the visible controls may be
-// hit-tested by that canvas in some browsers. This second route keeps the
-// buttons authoritative and updates the destination page in the same turn.
 window.addEventListener('ff:book-control', e => turnNotebookPage(Number(e.detail?.direction) || 0));
-document.getElementById('pagePrev').addEventListener('click', () => turnNotebookPage(-1));
-document.getElementById('pageNext').addEventListener('click', () => turnNotebookPage(1));
 
 document.getElementById('noteBtn').addEventListener('click', async () => {
   const input = document.getElementById('noteInput');
