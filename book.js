@@ -129,23 +129,54 @@
   rightPage.position.set(pageW / 2, .075, 0);
   openBook.add(rightPage);
 
-  const turningPivot = new THREE.Group();
-  turningPivot.position.set(0, .1, 0);
-  // Subdivide both axes so the sheet can bow and twist like a real magazine
-  // page instead of rotating as a rigid rectangle.
-  const turningGeometry = new THREE.PlaneGeometry(pageW, pageH, 32, 18);
-  turningGeometry.translate(pageW / 2, 0, 0);
-  const turningBaseX = new Float32Array(turningGeometry.attributes.position.count);
-  const turningBaseY = new Float32Array(turningGeometry.attributes.position.count);
-  for (let i = 0; i < turningBaseX.length; i++) {
-    turningBaseX[i] = turningGeometry.attributes.position.getX(i);
-    turningBaseY[i] = turningGeometry.attributes.position.getY(i);
+  // A subdivided two-sided leaf. Its hinge is exactly x=0 at the spine;
+  // only the free columns are allowed to curl while the sheet turns.
+  const cols = 40, rows = 12, leafPositions = [], leafUvs = [], leafIndices = [];
+  for (let j = 0; j <= rows; j++) {
+    for (let i = 0; i <= cols; i++) {
+      leafPositions.push(pageW * i / cols, 0, -pageH / 2 + pageH * j / rows);
+      leafUvs.push(i / cols, 1 - j / rows);
+    }
   }
-  const turningPage = new THREE.Mesh(turningGeometry, paperMaterial());
-  turningPage.rotation.x = -Math.PI / 2;
+  const leafRow = cols + 1;
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const a = j * leafRow + i, b = a + 1, c = a + leafRow, d = c + 1;
+      leafIndices.push(a, c, b, b, c, d);
+    }
+  }
+  const turningGeometry = new THREE.BufferGeometry();
+  turningGeometry.setAttribute('position', new THREE.Float32BufferAttribute(leafPositions, 3));
+  turningGeometry.setAttribute('uv', new THREE.Float32BufferAttribute(leafUvs, 2));
+  turningGeometry.setIndex(leafIndices);
+  turningGeometry.computeVertexNormals();
+  const leafMaterial = new THREE.ShaderMaterial({
+    uniforms: { frontMap: { value: null }, backMap: { value: null } },
+    side: THREE.DoubleSide,
+    vertexShader: 'varying vec2 vUv; void main(){vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader: 'uniform sampler2D frontMap; uniform sampler2D backMap; varying vec2 vUv; void main(){ if(gl_FrontFacing) gl_FragColor=texture2D(frontMap,vUv); else gl_FragColor=texture2D(backMap,vec2(1.0-vUv.x,vUv.y)); }',
+  });
+  const turningPage = new THREE.Mesh(turningGeometry, leafMaterial);
+  turningPage.position.y = .1;
   turningPage.visible = false;
-  turningPivot.add(turningPage);
-  openBook.add(turningPivot);
+  turningPage.renderOrder = 10;
+  openBook.add(turningPage);
+  const turningShadow = new THREE.Mesh(turningGeometry, new THREE.MeshBasicMaterial({
+    color: 0x120b08, transparent: true, opacity: .18, side: THREE.DoubleSide, depthWrite: false,
+  }));
+  turningShadow.position.y = .055;
+  turningShadow.scale.set(1.012, 1, 1.012);
+  turningShadow.visible = false;
+  turningShadow.renderOrder = 1;
+  openBook.add(turningShadow);
+  const crease = new THREE.Mesh(new THREE.PlaneGeometry(.035, pageH), new THREE.MeshBasicMaterial({
+    color: 0x2b1710, transparent: true, opacity: .4, side: THREE.DoubleSide, depthWrite: false,
+  }));
+  crease.rotation.x = -Math.PI / 2;
+  crease.position.set(0, .12, 0);
+  crease.visible = false;
+  crease.renderOrder = 11;
+  openBook.add(crease);
 
   function wrapText(ctx, text, x, y, maxWidth, lineHeight, maxY) {
     const words = String(text || '').split(/\s+/);
@@ -272,12 +303,15 @@
     left: null,
     right: currentData,
   };
+  let turning = false;
+  let pendingSpread = null;
+  let queuedTurnDirection = 0;
   function replaceMap(mesh, texture) {
     if (mesh.material.map) mesh.material.map.dispose();
     mesh.material.map = texture;
     mesh.material.needsUpdate = true;
   }
-  function setSpreadData(spread) {
+  function applySpreadData(spread) {
     currentSpread = spread || currentSpread;
     currentData = currentSpread.right || currentData;
     replaceMap(leftPage, currentSpread.left?.cover
@@ -289,76 +323,92 @@
       ? blankTexture()
       : pageTexture(currentSpread.right || currentData, 'right'));
   }
+  function setSpreadData(spread) {
+    // The DOM can announce the destination spread while the physical leaf is
+    // still travelling. Keep the stationary pages unchanged until it lands.
+    if (turning) { pendingSpread = spread; return; }
+    applySpreadData(spread);
+  }
   setSpreadData(currentSpread);
 
-  let turning = false;
   let turningStartedAt = 0;
   let turnWatchdog = null;
-  function turn(direction) {
+  const leafBase = leafPositions.slice();
+  function finishTurn(destination) {
+    if (!turning) return;
+    const finalSpread = pendingSpread || destination;
+    pendingSpread = null;
+    for (let i = 0; i < turningGeometry.attributes.position.count; i++) {
+      const x = leafBase[i * 3];
+      turningGeometry.attributes.position.setXYZ(i, x, 0, leafBase[i * 3 + 2]);
+    }
+    turningGeometry.attributes.position.needsUpdate = true;
+    turningPage.visible = false;
+    turningShadow.visible = false;
+    crease.visible = false;
+    turningPage.position.y = .1;
+    turningShadow.material.opacity = .18;
+    turning = false;
+    turningStartedAt = 0;
+    if (turnWatchdog) { window.clearTimeout(turnWatchdog); turnWatchdog = null; }
+    applySpreadData(finalSpread);
+  }
+  function startTurn(direction, destination) {
     // A hidden/background tab can suspend requestAnimationFrame. Never let a
     // suspended animation permanently swallow the next page request.
-    if (turning && performance.now() - turningStartedAt < 1800) return;
-    if (turnWatchdog) window.clearTimeout(turnWatchdog);
     turning = true;
     turningStartedAt = performance.now();
-    turningPage.visible = true;
-    turningPivot.rotation.z = 0;
-    // Forward turns the right leaf; backward turns the left leaf. The new
-    // spread is painted after the leaf finishes travelling.
+    // Forward turns the right leaf; backward turns the left leaf. The leaf
+    // has a real front and back so the text travels with the paper.
     const turningData = direction > 0 ? currentSpread.right : currentSpread.left;
-    replaceMap(turningPage, turningData?.cover
-      ? coverTexture('left')
-      : turningData?.blank
-        ? blankTexture()
-        : pageTexture(turningData || currentData, direction > 0 ? 'right' : 'left'));
+    leafMaterial.uniforms.frontMap.value = direction > 0
+      ? (turningData?.cover ? coverTexture('left') : turningData?.blank ? blankTexture() : pageTexture(turningData || currentData, 'right'))
+      : (destination?.right?.blank ? blankTexture() : pageTexture(destination?.right || currentData, 'right'));
+    leafMaterial.uniforms.backMap.value = direction > 0
+      ? (destination?.left?.cover ? coverTexture('left') : destination?.left?.blank ? blankTexture() : pageTexture(destination?.left || currentData, 'left'))
+      : (turningData?.cover ? coverTexture('left') : turningData?.blank ? blankTexture() : pageTexture(turningData || currentData, 'left'));
+    leafMaterial.needsUpdate = true;
+    if (direction > 0) replaceMap(rightPage, destination?.right?.blank ? blankTexture() : pageTexture(destination?.right || currentData, 'right'));
+    else replaceMap(leftPage, destination?.left?.cover ? coverTexture('left') : destination?.left?.blank ? blankTexture() : pageTexture(destination?.left || currentData, 'left'));
+    turningPage.position.y = .1;
+    turningPage.visible = true;
+    turningShadow.visible = true;
+    crease.visible = true;
     const start = performance.now();
-    const duration = reducedMotion ? 1 : 720;
+    const duration = reducedMotion ? 1 : 920;
     function frame(now) {
+      if (!turning) return;
       const p = Math.min((now - start) / duration, 1);
       const eased = .5 - Math.cos(p * Math.PI) / 2;
-      // A magazine page bows upward and twists at the spine halfway through
-      // its travel. The extra rows are what create the curled-sheet silhouette
-      // seen in the MOD3 flipbook example.
       const positions = turningGeometry.attributes.position;
+      // The page geometry is in world X/Y/Z. The signed X coordinate mirrors
+      // the leaf for a backward turn while the row depth stays unchanged.
       for (let i = 0; i < positions.count; i++) {
-        const x = turningBaseX[i];
-        const baseY = turningBaseY[i];
-        // turningGeometry is translated so its hinge is x=0 and free edge is
-        // x=pageW; do not offset this coordinate or the bound edge will bend.
-        const u = x / pageW;
-        const v = baseY / pageH + .5;
-        const travel = Math.sin(p * Math.PI);
-        // Bend each column progressively from the spine. Unlike rotating the
-        // whole leaf as one rigid card, this keeps the bound edge fixed and
-        // lets the free edge travel around the hinge like MOD3's Bend/Pivot.
-        const hingeProgress = Math.pow(Math.max(0, Math.min(1, u)), .86);
-        const angle = direction * eased * Math.PI * hingeProgress;
-        const bow = Math.sin(u * Math.PI) * Math.sin(v * Math.PI) * travel * -.18;
-        const c = Math.cos(angle);
-        const s = Math.sin(angle);
-        positions.setX(i, x * c - bow * s);
-        positions.setY(i, baseY);
-        positions.setZ(i, x * s + bow * c);
+        const x = leafBase[i * 3], z = leafBase[i * 3 + 2];
+        const u = x / pageW, v = z / pageH + .5, travel = Math.sin(p * Math.PI);
+        const midTurnLag = 1 - .12 * (1 - u) * travel;
+        const angle = direction * eased * Math.PI * midTurnLag;
+        const bow = Math.sin(u * Math.PI) * Math.sin(v * Math.PI) * travel * -.04;
+        const c = Math.cos(angle), s = Math.sin(angle);
+        positions.setXYZ(i, (direction > 0 ? 1 : -1) * x * c - bow * s, (direction > 0 ? 1 : -1) * x * s + bow * c, z);
       }
       positions.needsUpdate = true;
+      turningShadow.material.opacity = .12 + .24 * Math.sin(p * Math.PI);
       if (p < 1) {
         requestAnimationFrame(frame);
       } else {
-        turningPivot.rotation.z = 0;
-        turningPage.visible = false;
-        turning = false;
-        turningStartedAt = 0;
-        if (turnWatchdog) { window.clearTimeout(turnWatchdog); turnWatchdog = null; }
+        const finalPositions = turningGeometry.attributes.position;
+        for (let i = 0; i < finalPositions.count; i++) {
+          const x = leafBase[i * 3], z = leafBase[i * 3 + 2];
+          finalPositions.setXYZ(i, direction > 0 ? -x : x, 0, z);
+        }
+        finalPositions.needsUpdate = true;
+        finishTurn(destination);
       }
     }
     requestAnimationFrame(frame);
     turnWatchdog = window.setTimeout(() => {
-      if (!turning) return;
-      turningPivot.rotation.z = 0;
-      turningPage.visible = false;
-      turning = false;
-      turningStartedAt = 0;
-      turnWatchdog = null;
+      finishTurn(destination);
     }, reducedMotion ? 80 : 1500);
   }
 
@@ -366,8 +416,23 @@
   window.addEventListener('ff:book-open', () => { isOpen = true; resize(); });
   window.addEventListener('ff:book-close', () => { isOpen = false; });
   window.addEventListener('ff:book-cover', showBackCover);
-  window.addEventListener('ff:book-spread', e => setSpreadData(e.detail));
-  window.addEventListener('ff:book-turn', e => turn(e.detail.direction));
+  window.addEventListener('ff:book-spread', e => {
+    const spread = e.detail;
+    // party-room announces the destination shortly after the turn request.
+    // Start the leaf only once both the direction and destination are known.
+    if (queuedTurnDirection && !turning) {
+      const direction = queuedTurnDirection;
+      queuedTurnDirection = 0;
+      startTurn(direction, spread);
+      return;
+    }
+    setSpreadData(spread);
+  });
+  window.addEventListener('ff:book-turn', e => {
+    const direction = Number(e.detail?.direction) || 0;
+    if (!direction || turning) return;
+    queuedTurnDirection = direction;
+  });
 
   // MOD3-style direct manipulation: click either half of the spread to turn
   // in that direction, or use the keyboard arrows while the book is open.
