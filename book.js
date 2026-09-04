@@ -329,7 +329,10 @@
   fullCanvas.addEventListener('click', event => {
     if (!isOpen || turning) return;
     const rect = fullCanvas.getBoundingClientRect();
-    const direction = (event.clientX - rect.left) < rect.width / 2 ? -1 : 1;
+    const normalizedX = (event.clientX - rect.left) / Math.max(1, rect.width);
+    // Ignore the dark table surround; only the physical spread is clickable.
+    if (normalizedX < .16 || normalizedX > .84) return;
+    const direction = normalizedX < .5 ? -1 : 1;
     window.dispatchEvent(new CustomEvent('ff:book-control', { detail: { direction } }));
   });
   // Keep the controls working even if the canvas receives the physical click

@@ -1913,3 +1913,13 @@
     box-shadow: none !important;
     bottom: 14px !important;
   }
+  .book-page-block .party-form {
+    left: 24px !important;
+    right: auto !important;
+    bottom: 18px !important;
+    width: min(280px, calc(50vw - 56px)) !important;
+    transform: none !important;
+    padding: 7px 10px !important;
+    background: rgba(20,10,7,.76) !important;
+    border-color: rgba(207,168,91,.42) !important;
+  }
