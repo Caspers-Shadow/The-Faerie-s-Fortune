@@ -10,7 +10,7 @@
   const leather = 0x733d28;
   const leatherDark = 0x24100c;
   const gold = 0xe0b65f;
-  const paper = 0xe8d5a7;
+  const paper = 0xb99a6b;
 
   function rendererFor(canvas, alpha = true) {
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha });
@@ -20,9 +20,9 @@
   }
 
   function addLights(scene) {
-    scene.add(new THREE.HemisphereLight(0xffe5bd, 0x25150f, 1.25));
-    const key = new THREE.DirectionalLight(0xffd28d, 1.15);
-    key.position.set(-3, 6, 4);
+    scene.add(new THREE.HemisphereLight(0xd6bd8b, 0x25150f, .78));
+    const key = new THREE.DirectionalLight(0xe5c98d, .62);
+    key.position.set(-3, 7, 1);
     scene.add(key);
     const rim = new THREE.PointLight(0x8fa8ff, .45, 15);
     rim.position.set(4, 2, -2);
@@ -83,12 +83,18 @@
   // Full open book: two covers, stacked paper, and a separate turning leaf.
   const fullRenderer = rendererFor(fullCanvas);
   const fullScene = new THREE.Scene();
-  const fullCamera = new THREE.PerspectiveCamera(34, 1.65, .1, 50);
-  fullCamera.position.set(0, 7.4, 8.6);
+  // An orthographic, straight-down camera keeps the spread flat like a magazine
+  // laid on the table. This removes the foreshortening that made the far edge
+  // look raised and keeps both pages equally readable at every screen size.
+  const fullCamera = new THREE.OrthographicCamera(-5, 5, 3.5, -3.5, .1, 50);
+  fullCamera.position.set(0, 10, 0);
+  // Pick a stable screen-up axis; the default Y-up vector is parallel to the
+  // camera direction in a top-down view and can produce an undefined roll.
+  fullCamera.up.set(0, 0, -1);
   fullCamera.lookAt(0, 0, 0);
   addLights(fullScene);
   const openBook = new THREE.Group();
-  openBook.rotation.x = -.05;
+  openBook.rotation.x = 0;
   fullScene.add(openBook);
 
   const pageW = 3.7;
@@ -129,6 +135,7 @@
   turningGeometry.translate(pageW / 2, 0, 0);
   const turningPage = new THREE.Mesh(turningGeometry, paperMaterial());
   turningPage.rotation.x = -Math.PI / 2;
+  turningPage.visible = false;
   turningPivot.add(turningPage);
   openBook.add(turningPivot);
 
@@ -154,21 +161,21 @@
     canvas.height = 1240;
     const ctx = canvas.getContext('2d');
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-    gradient.addColorStop(0, side === 'left' ? '#c5aa76' : '#efe0b8');
-    gradient.addColorStop(.1, '#f0dfb4');
-    gradient.addColorStop(1, side === 'left' ? '#efe0b8' : '#c9ae79');
+    gradient.addColorStop(0, side === 'left' ? '#a98b5e' : '#d2b985');
+    gradient.addColorStop(.1, '#d8c08e');
+    gradient.addColorStop(1, side === 'left' ? '#d2b985' : '#ae905f');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = 'rgba(104,72,35,.18)';
     ctx.lineWidth = 2;
     for (let y = 255; y < 1130; y += 56) { ctx.beginPath(); ctx.moveTo(90, y); ctx.lineTo(810, y); ctx.stroke(); }
-    ctx.fillStyle = '#55351d';
+    ctx.fillStyle = '#3a2413';
     ctx.textAlign = side === 'left' ? 'right' : 'left';
     const x = side === 'left' ? 775 : 125;
     ctx.font = '700 46px Georgia';
     ctx.fillText(data?.title || 'The Party Chronicle', x, 115);
     ctx.font = '22px monospace';
-    ctx.fillStyle = '#86633d';
+    ctx.fillStyle = '#634521';
     ctx.fillText(data?.date || '', x, 158);
     ctx.textAlign = 'left';
     ctx.fillStyle = '#3e2a1a';
@@ -187,7 +194,7 @@
       }
     }
     ctx.font = '20px monospace';
-    ctx.fillStyle = '#86633d';
+    ctx.fillStyle = '#634521';
     ctx.textAlign = 'center';
     ctx.fillText(`${data?.page || 1} / ${data?.total || 1}`, 450, 1175);
     const texture = new THREE.CanvasTexture(canvas);
@@ -210,6 +217,7 @@
   function turn(direction) {
     if (turning) return;
     turning = true;
+    turningPage.visible = true;
     turningPivot.rotation.z = direction > 0 ? 0 : Math.PI;
     turningPage.material.map = pageTexture(currentData, direction > 0 ? 'right' : 'left');
     turningPage.material.needsUpdate = true;
@@ -232,7 +240,7 @@
       }
       positions.needsUpdate = true;
       if (p < 1) requestAnimationFrame(frame);
-      else { turningPivot.rotation.z = 0; turning = false; }
+      else { turningPivot.rotation.z = 0; turningPage.visible = false; turning = false; }
     }
     requestAnimationFrame(frame);
   }
@@ -252,7 +260,16 @@
     const fw = Math.max(1, fullCanvas.clientWidth);
     const fh = Math.max(1, fullCanvas.clientHeight);
     fullRenderer.setSize(fw, fh, false);
-    fullCamera.aspect = fw / fh;
+    const aspect = fw / fh;
+    // Fit the whole physical spread, including its cover overhang, while
+    // retaining a comfortable margin on wide and narrow screens.
+    const viewH = Math.max(5.7, 7.9 / aspect);
+    const halfH = viewH / 2;
+    const halfW = halfH * aspect;
+    fullCamera.left = -halfW;
+    fullCamera.right = halfW;
+    fullCamera.top = halfH;
+    fullCamera.bottom = -halfH;
     fullCamera.updateProjectionMatrix();
   }
   window.addEventListener('resize', resize);
