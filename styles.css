@@ -1735,6 +1735,16 @@
     .book-page-block .drawer-title { max-width: 65vw; font-size: 13px; }
   }
 
+  /* V13 — the closed volume sits partly beyond the table edge, like a real prop. */
+  @media (min-width: 1041px) {
+    .play-mat .book-button,
+    .play-mat .menu-btn.book-button { right: -66px; bottom: 6px; }
+  }
+  @media (max-width: 1040px) and (min-width: 761px) {
+    .play-mat .book-button,
+    .play-mat .menu-btn.book-button { right: -42px; bottom: 4px; }
+  }
+
   /* V12 — the physical book remains visible while WebGL loads or is absent. */
   .play-mat .book-button,
   .play-mat .menu-btn.book-button {
