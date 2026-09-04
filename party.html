@@ -4,38 +4,47 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>The Faerie's Fortune - Party</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=13">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Cpolygon points=%2750,6 90,30 90,70 50,94 10,70 10,30%27 fill=%27%23E8B93E%27 stroke=%27%238C6B32%27 stroke-width=%274%27/%3E%3Ctext x=%2750%27 y=%2763%27 font-family=%27Georgia%27 font-weight=%27900%27 font-size=%2740%27 text-anchor=%27middle%27 fill=%27%231C1712%27%3E20%3C/text%3E%3C/svg%3E">
-</head>
-<body>
 
+<link rel="stylesheet" href="styles.css?v=14">
+</head>
+
+<body>
 <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
 <aside class="drawer table-notebook" id="drawer" aria-hidden="true">
   <div class="book-stage">
     <div class="book-volume">
-      <canvas id="bookFullscreenScene" class="book-fullscreen-canvas" aria-label="Open three-dimensional party chronicle"></canvas>
+      <canvas
+        id="bookFullscreenScene"
+        class="book-fullscreen-canvas"
+        aria-label="Open three-dimensional party chronicle">
+      </canvas>
+
       <div class="book-page-block">
         <div class="drawer-head">
           <span class="drawer-title">The Chronicle of the Party</span>
           <button class="drawer-close" id="drawerClose" aria-label="Close session book">✕</button>
         </div>
+
         <nav class="drawer-nav">
           <a href="dashboard.html">← Your Parties</a>
           <button id="drawerLogout">Log Out</button>
         </nav>
-        <div class="drawer-divider"></div>
 
         <div class="notebook">
           <div class="party-form">
             <input type="text" id="noteInput" placeholder="Write a note…" maxlength="200">
             <button class="die-btn" id="noteBtn">Add</button>
           </div>
+
           <div class="notebook-page" id="notebookPage">
             <p class="page-empty">Loading…</p>
           </div>
+
           <div class="notebook-nav">
             <button class="link-btn" id="pagePrev">‹ Previous session</button>
             <span class="page-indicator" id="pageIndicator"></span>
@@ -49,10 +58,11 @@
 
 <div class="game-shell">
   <header class="game-bar">
-    <a class="game-brand" href="dashboard.html" aria-label="Back to your parties">
+    <a class="game-brand" href="dashboard.html">
       <span class="brand-die"><span>20</span></span>
       <span>The Faerie's Fortune</span>
     </a>
+
     <div class="theme-select" id="themeSelect" role="group" aria-label="Choose a play mat">
       <span class="theme-label">Play mat</span>
     </div>
@@ -61,12 +71,14 @@
   <div class="room-layout">
     <main class="play-mat">
       <div id="ambience"></div>
+
       <div class="stage">
         <header class="party-heading">
           <div>
             <p class="eyebrow">Tonight's table</p>
             <h1 id="partyTitle">The Faerie's <span>Fortune</span></h1>
           </div>
+
           <div class="party-panel" id="partyInfo">
             <p class="party-hint">Loading party…</p>
           </div>
@@ -82,9 +94,13 @@
                   <canvas id="scene" aria-hidden="true"></canvas>
                 </div>
               </div>
+
               <div class="result-hud" id="resultHud" aria-live="polite">-</div>
             </div>
-            <p class="hint" id="hint">Click the tray, or press Enter / Space, to roll</p>
+
+            <p class="hint" id="hint">
+              Click the tray, or press Enter / Space, to roll
+            </p>
           </div>
         </div>
 
@@ -93,14 +109,25 @@
             <h2 id="ledgerHeading">Recent casts</h2>
             <button class="link-btn" id="refreshBtn">Refresh</button>
           </div>
-          <ul id="log"><li class="empty">Loading…</li></ul>
+
+          <ul id="log">
+            <li class="empty">Loading…</li>
+          </ul>
         </section>
       </div>
-      <button class="menu-btn book-button" id="hamburgerBtn" aria-expanded="false" aria-controls="drawer" aria-label="Open the party chronicle">
+
+      <button
+        class="menu-btn book-button"
+        id="hamburgerBtn"
+        aria-expanded="false"
+        aria-controls="drawer"
+        aria-label="Open the party chronicle">
+
         <span class="book-fallback" aria-hidden="true">
           <span class="fallback-rune">✦</span>
           <span>Party Chronicle</span>
         </span>
+
         <canvas id="bookClosedScene" aria-hidden="true"></canvas>
         <span class="sr-only">Open party chronicle</span>
       </button>
@@ -108,17 +135,13 @@
   </div>
 </div>
 
-<!-- Accounts -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js?v=5"></script>
 <script src="supabase-client.js?v=5"></script>
 
-<!-- 3D dice -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="dice.js?v=5"></script>
-<script src="book.js?v=12"></script>
-
-<!-- This party's roster, sessions, and shared log -->
-<script src="party-room.js?v=12"></script>
+<script src="book.js?v=14"></script>
+<script src="party-room.js?v=14"></script>
 </body>
 </html>
