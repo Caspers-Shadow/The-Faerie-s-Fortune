@@ -10,6 +10,7 @@ let currentSessionId = null;
 let sessionsList = [];   // ascending by started_at
 let pageIndex = 0;       // index into sessionsList currently shown in the notebook
 let notebookLoaded = false;
+let introCoverOnOpen = false;
 let onlineIds = new Set();
 
 (async function initPartyRoom() {
@@ -201,6 +202,11 @@ function openDrawer() {
   drawer.classList.add('open'); drawerOverlay.classList.add('open'); drawerOverlay.hidden = false;
   menuBtn.setAttribute('aria-expanded', 'true'); drawer.setAttribute('aria-hidden', 'false');
   document.body.classList.add('book-open');
+  // Each opening begins with the inside of the back cover, then lands on the
+  // first session page rather than jumping straight to the newest session.
+  introCoverOnOpen = true;
+  notebookLoaded = false;
+  window.dispatchEvent(new CustomEvent('ff:book-cover'));
   refreshNotebook();
   window.dispatchEvent(new CustomEvent('ff:book-open'));
 }
@@ -258,6 +264,8 @@ function buildBookPages() {
 }
 
 async function refreshNotebook() {
+  const showCoverThenFirstPage = introCoverOnOpen;
+  introCoverOnOpen = false;
   const previousKey = bookPages[pageIndex]?.key;
   const [{ data: sessions }, { data: notes }] = await Promise.all([
     supabaseClient.from('sessions').select('id, label, started_at').eq('party_id', partyId).order('started_at', { ascending: true }),
@@ -272,6 +280,15 @@ async function refreshNotebook() {
     notesBySession[n.session_id].push(n);
   });
   buildBookPages();
+
+  if (showCoverThenFirstPage) {
+    pageIndex = 0;
+    notebookLoaded = true;
+    // Give the back-cover texture a moment to be seen before the first sheet
+    // arrives, as it would when opening a physical book.
+    window.setTimeout(renderNotebookPage, 620);
+    return;
+  }
 
   // Keep the page the player is reading during background refreshes. On the
   // first load, open the last page belonging to the active session.

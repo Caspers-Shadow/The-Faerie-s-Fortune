@@ -209,6 +209,39 @@
   }
 
   let currentData = { title: 'The Party Chronicle', date: '', notes: [], page: 1, total: 1 };
+  function coverTexture(side) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 900;
+    canvas.height = 1240;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#321713';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#d2a554';
+    ctx.lineWidth = 10;
+    ctx.strokeRect(46, 46, canvas.width - 92, canvas.height - 92);
+    ctx.strokeStyle = 'rgba(231,192,110,.45)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(72, 72, canvas.width - 144, canvas.height - 144);
+    ctx.fillStyle = '#f0dba8';
+    ctx.textAlign = 'center';
+    ctx.font = '700 42px Georgia';
+    ctx.fillText(side === 'left' ? 'THE FAERIE’S' : 'PARTY CHRONICLE', 450, 520);
+    ctx.font = '700 54px Georgia';
+    ctx.fillText(side === 'left' ? 'FORTUNE' : 'BACK COVER', 450, 590);
+    ctx.font = '22px monospace';
+    ctx.fillStyle = '#d2a554';
+    ctx.fillText('✦', 450, 680);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.anisotropy = 4;
+    return texture;
+  }
+  function showBackCover() {
+    if (leftPage.material.map) leftPage.material.map.dispose();
+    if (rightPage.material.map) rightPage.material.map.dispose();
+    leftPage.material.map = coverTexture('left');
+    rightPage.material.map = coverTexture('right');
+    leftPage.material.needsUpdate = rightPage.material.needsUpdate = true;
+  }
   function setPageData(data) {
     currentData = data || currentData;
     if (leftPage.material.map) leftPage.material.map.dispose();
@@ -247,7 +280,9 @@
         const travel = Math.sin(p * Math.PI);
         const bow = Math.sin(u * Math.PI) * Math.sin(v * Math.PI) * travel;
         const twist = (v - .5) * Math.sin(u * Math.PI) * travel;
-        positions.setZ(i, bow * .55 + twist * .22);
+        // Keep the centre of the sheet close to the spine: the negative bow
+        // makes a concave fold in both directions instead of a convex dome.
+        positions.setZ(i, bow * -.55 + twist * -.22);
         positions.setY(i, baseY);
       }
       positions.needsUpdate = true;
@@ -260,6 +295,7 @@
   let isOpen = false;
   window.addEventListener('ff:book-open', () => { isOpen = true; resize(); });
   window.addEventListener('ff:book-close', () => { isOpen = false; });
+  window.addEventListener('ff:book-cover', showBackCover);
   window.addEventListener('ff:book-page', e => setPageData(e.detail));
   window.addEventListener('ff:book-turn', e => turn(e.detail.direction));
 
