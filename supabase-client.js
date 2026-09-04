@@ -3,6 +3,18 @@
 const CLOUD_ENABLED = typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL && !SUPABASE_URL.startsWith('YOUR_');
 const supabaseClient = CLOUD_ENABLED ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
+// Network requests should never leave a page stuck on a loading message.
+// GitHub Pages can remain visible even when the Supabase project is paused,
+// offline, or blocked by a browser extension, so surface a useful error
+// instead of waiting forever.
+function withTimeout(request, ms = 10000, label = 'Request') {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(label + ' timed out. Check your connection and Supabase project.')), ms);
+  });
+  return Promise.race([Promise.resolve(request), timeout]).finally(() => clearTimeout(timer));
+}
+
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -79,8 +91,17 @@ async function requireSession() {
 }
 
 async function getDisplayName(userId) {
-  const { data } = await supabaseClient.from('profiles').select('display_name').eq('id', userId).single();
-  return data ? data.display_name : 'Adventurer';
+  try {
+    const { data } = await withTimeout(
+      supabaseClient.from('profiles').select('display_name').eq('id', userId).single(),
+      10000,
+      'Loading your profile'
+    );
+    return data ? data.display_name : 'Adventurer';
+  } catch (err) {
+    console.warn(err);
+    return 'Adventurer';
+  }
 }
 
 async function signOutAndRedirect() {

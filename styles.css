@@ -1819,3 +1819,9 @@
     .play-mat .menu-btn.book-button { width: 180px; height: 128px; }
     .book-fallback { inset: 20px 24px 27px 22px; }
   }
+
+  /* V14 — flat, readable magazine spread. */
+  .book-fullscreen-canvas {
+    filter: brightness(.78) saturate(.78) contrast(1.12);
+  }
+  .book-page-block .notebook-page { background: transparent; }
