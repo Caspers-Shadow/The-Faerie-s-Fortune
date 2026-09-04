@@ -135,6 +135,12 @@
   // page instead of rotating as a rigid rectangle.
   const turningGeometry = new THREE.PlaneGeometry(pageW, pageH, 32, 18);
   turningGeometry.translate(pageW / 2, 0, 0);
+  const turningBaseX = new Float32Array(turningGeometry.attributes.position.count);
+  const turningBaseY = new Float32Array(turningGeometry.attributes.position.count);
+  for (let i = 0; i < turningBaseX.length; i++) {
+    turningBaseX[i] = turningGeometry.attributes.position.getX(i);
+    turningBaseY[i] = turningGeometry.attributes.position.getY(i);
+  }
   const turningPage = new THREE.Mesh(turningGeometry, paperMaterial());
   turningPage.rotation.x = -Math.PI / 2;
   turningPage.visible = false;
@@ -305,31 +311,34 @@
       : turningData?.blank
         ? blankTexture()
         : pageTexture(turningData || currentData, direction > 0 ? 'right' : 'left'));
-    const from = direction > 0 ? 0 : Math.PI;
-    const to = direction > 0 ? Math.PI : 0;
-    turningPivot.rotation.z = from;
     const start = performance.now();
     const duration = reducedMotion ? 1 : 720;
     function frame(now) {
       const p = Math.min((now - start) / duration, 1);
       const eased = .5 - Math.cos(p * Math.PI) / 2;
-      turningPivot.rotation.z = from + (to - from) * eased;
       // A magazine page bows upward and twists at the spine halfway through
       // its travel. The extra rows are what create the curled-sheet silhouette
       // seen in the MOD3 flipbook example.
       const positions = turningGeometry.attributes.position;
       for (let i = 0; i < positions.count; i++) {
-        const x = positions.getX(i);
-        const baseY = positions.getY(i);
-        const u = x / pageW + .5;
+        const x = turningBaseX[i];
+        const baseY = turningBaseY[i];
+        // turningGeometry is translated so its hinge is x=0 and free edge is
+        // x=pageW; do not offset this coordinate or the bound edge will bend.
+        const u = x / pageW;
         const v = baseY / pageH + .5;
         const travel = Math.sin(p * Math.PI);
-        const bow = Math.sin(u * Math.PI) * Math.sin(v * Math.PI) * travel;
-        const twist = (v - .5) * Math.sin(u * Math.PI) * travel;
-        // Keep the centre of the sheet close to the spine: the negative bow
-        // makes a concave fold in both directions instead of a convex dome.
-        positions.setZ(i, bow * -.55 + twist * -.22);
+        // Bend each column progressively from the spine. Unlike rotating the
+        // whole leaf as one rigid card, this keeps the bound edge fixed and
+        // lets the free edge travel around the hinge like MOD3's Bend/Pivot.
+        const hingeProgress = Math.pow(Math.max(0, Math.min(1, u)), .86);
+        const angle = direction * eased * Math.PI * hingeProgress;
+        const bow = Math.sin(u * Math.PI) * Math.sin(v * Math.PI) * travel * -.18;
+        const c = Math.cos(angle);
+        const s = Math.sin(angle);
+        positions.setX(i, x * c - bow * s);
         positions.setY(i, baseY);
+        positions.setZ(i, x * s + bow * c);
       }
       positions.needsUpdate = true;
       if (p < 1) {
