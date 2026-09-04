@@ -131,7 +131,9 @@
 
   const turningPivot = new THREE.Group();
   turningPivot.position.set(0, .1, 0);
-  const turningGeometry = new THREE.PlaneGeometry(pageW, pageH, 22, 1);
+  // Subdivide both axes so the sheet can bow and twist like a real magazine
+  // page instead of rotating as a rigid rectangle.
+  const turningGeometry = new THREE.PlaneGeometry(pageW, pageH, 32, 18);
   turningGeometry.translate(pageW / 2, 0, 0);
   const turningPage = new THREE.Mesh(turningGeometry, paperMaterial());
   turningPage.rotation.x = -Math.PI / 2;
@@ -173,15 +175,19 @@
     ctx.textAlign = side === 'left' ? 'right' : 'left';
     const x = side === 'left' ? 775 : 125;
     ctx.font = '700 46px Georgia';
-    ctx.fillText(data?.title || 'The Party Chronicle', x, 115);
+    ctx.fillText(side === 'left' ? (data?.title || 'The Party Chronicle') : 'Field notes', x, 115);
     ctx.font = '22px monospace';
     ctx.fillStyle = '#634521';
-    ctx.fillText(data?.date || '', x, 158);
+    ctx.fillText(side === 'left' ? (data?.date || '') : 'from this session', x, 158);
     ctx.textAlign = 'left';
     ctx.fillStyle = '#3e2a1a';
     let y = 235;
     const notes = data?.notes || [];
-    if (!notes.length) {
+    if (side === 'left') {
+      ctx.font = 'italic 30px Georgia';
+      ctx.fillStyle = '#634521';
+      ctx.fillText(notes.length ? 'Turn the page for session notes.' : 'No notes written in this session.', 125, y);
+    } else if (!notes.length) {
       ctx.font = 'italic 30px Georgia';
       ctx.fillText('No notes written in this session.', 125, y);
     } else {
@@ -229,13 +235,19 @@
       const p = Math.min((now - start) / duration, 1);
       const eased = .5 - Math.cos(p * Math.PI) / 2;
       turningPivot.rotation.z = from + (to - from) * eased;
-      // A magazine page bows upward halfway through its travel.
+      // A magazine page bows upward and twists at the spine halfway through
+      // its travel. The extra rows are what create the curled-sheet silhouette
+      // seen in the MOD3 flipbook example.
       const positions = turningGeometry.attributes.position;
       for (let i = 0; i < positions.count; i++) {
         const x = positions.getX(i);
         const baseY = positions.getY(i);
-        const bend = Math.sin((x / pageW) * Math.PI) * Math.sin(p * Math.PI) * .34;
-        positions.setZ(i, bend);
+        const u = x / pageW + .5;
+        const v = baseY / pageH + .5;
+        const travel = Math.sin(p * Math.PI);
+        const bow = Math.sin(u * Math.PI) * Math.sin(v * Math.PI) * travel;
+        const twist = (v - .5) * Math.sin(u * Math.PI) * travel;
+        positions.setZ(i, bow * .55 + twist * .22);
         positions.setY(i, baseY);
       }
       positions.needsUpdate = true;

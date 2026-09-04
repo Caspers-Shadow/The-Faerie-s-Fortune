@@ -9,6 +9,7 @@ let myRole = null;       // 'dm' | 'player'
 let currentSessionId = null;
 let sessionsList = [];   // ascending by started_at
 let pageIndex = 0;       // index into sessionsList currently shown in the notebook
+let notebookLoaded = false;
 let onlineIds = new Set();
 
 (async function initPartyRoom() {
@@ -134,6 +135,7 @@ async function startNewSession() {
   const { data: created } = await supabaseClient.from('sessions').insert({ party_id: partyId, label: null }).select().single();
   if (!created) return;
   currentSessionId = created.id;
+  notebookLoaded = false;
   await supabaseClient.from('log_entries').insert({ party_id: partyId, session_id: currentSessionId, user_id: me.id, type: 'session' });
   await refreshLog();
   await refreshNotebook();
@@ -233,7 +235,14 @@ async function refreshNotebook() {
     notesBySession[n.session_id].push(n);
   });
 
-  pageIndex = Math.max(0, sessionsList.findIndex(s => s.id === currentSessionId));
+  // Keep the page the player is reading during background refreshes. Only
+  // choose the newest session on the first load or if the current index was
+  // invalidated by a newly-created/deleted session.
+  const currentIndex = sessionsList.findIndex(s => s.id === currentSessionId);
+  if (!notebookLoaded || pageIndex < 0 || pageIndex >= sessionsList.length) {
+    pageIndex = Math.max(0, currentIndex);
+  }
+  notebookLoaded = true;
   renderNotebookPage();
 }
 
@@ -287,11 +296,13 @@ function turnNotebookPage(direction) {
   const nextIndex = pageIndex + direction;
   if (nextIndex < 0 || nextIndex >= sessionsList.length) return;
   pageTurning = true;
+  // Commit the destination immediately so an overlapping refresh cannot snap
+  // the controls back to the latest session while the 3D page is travelling.
+  pageIndex = nextIndex;
   window.dispatchEvent(new CustomEvent('ff:book-turn', { detail: { direction } }));
   const pageEl = document.getElementById('notebookPage');
   pageEl.classList.add(direction > 0 ? 'turning-next' : 'turning-prev');
   setTimeout(() => {
-    pageIndex = nextIndex;
     renderNotebookPage();
     pageEl.classList.remove('turning-next', 'turning-prev');
     pageEl.classList.add(direction > 0 ? 'arriving-next' : 'arriving-prev');
