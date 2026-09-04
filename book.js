@@ -249,9 +249,15 @@
   setPageData(currentData);
 
   let turning = false;
+  let turningStartedAt = 0;
+  let turnWatchdog = null;
   function turn(direction) {
-    if (turning) return;
+    // A hidden/background tab can suspend requestAnimationFrame. Never let a
+    // suspended animation permanently swallow the next page request.
+    if (turning && performance.now() - turningStartedAt < 1800) return;
+    if (turnWatchdog) window.clearTimeout(turnWatchdog);
     turning = true;
+    turningStartedAt = performance.now();
     turningPage.visible = true;
     turningPivot.rotation.z = direction > 0 ? 0 : Math.PI;
     turningPage.material.map = pageTexture(currentData, direction > 0 ? 'right' : 'left');
@@ -282,10 +288,25 @@
         positions.setY(i, baseY);
       }
       positions.needsUpdate = true;
-      if (p < 1) requestAnimationFrame(frame);
-      else { turningPivot.rotation.z = 0; turningPage.visible = false; turning = false; }
+      if (p < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        turningPivot.rotation.z = 0;
+        turningPage.visible = false;
+        turning = false;
+        turningStartedAt = 0;
+        if (turnWatchdog) { window.clearTimeout(turnWatchdog); turnWatchdog = null; }
+      }
     }
     requestAnimationFrame(frame);
+    turnWatchdog = window.setTimeout(() => {
+      if (!turning) return;
+      turningPivot.rotation.z = 0;
+      turningPage.visible = false;
+      turning = false;
+      turningStartedAt = 0;
+      turnWatchdog = null;
+    }, reducedMotion ? 80 : 1500);
   }
 
   let isOpen = false;
@@ -301,15 +322,26 @@
     if (!isOpen || turning) return;
     const rect = fullCanvas.getBoundingClientRect();
     const direction = (event.clientX - rect.left) < rect.width / 2 ? -1 : 1;
-    window.dispatchEvent(new CustomEvent('ff:book-turn', { detail: { direction } }));
+    window.dispatchEvent(new CustomEvent('ff:book-control', { detail: { direction } }));
   });
+  // Keep the controls working even if the canvas receives the physical click
+  // because of a browser's transformed-layer hit testing.
+  document.addEventListener('click', event => {
+    const button = event.target && event.target.closest && event.target.closest('#pagePrev, #pageNext');
+    if (!button || !isOpen) return;
+    event.preventDefault();
+    event.stopPropagation();
+    window.dispatchEvent(new CustomEvent('ff:book-control', {
+      detail: { direction: button.id === 'pageNext' ? 1 : -1 },
+    }));
+  }, true);
   document.addEventListener('keydown', event => {
     if (!isOpen || turning) return;
     const tag = event.target && event.target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
       event.preventDefault();
-      window.dispatchEvent(new CustomEvent('ff:book-turn', {
+      window.dispatchEvent(new CustomEvent('ff:book-control', {
         detail: { direction: event.key === 'ArrowLeft' ? -1 : 1 },
       }));
     }

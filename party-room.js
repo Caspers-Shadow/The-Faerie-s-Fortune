@@ -380,6 +380,10 @@ function turnNotebookPage(direction) {
   }, 340);
 }
 
+// book.js listens on the transformed canvas, but the visible controls may be
+// hit-tested by that canvas in some browsers. This second route keeps the
+// buttons authoritative and updates the destination page in the same turn.
+window.addEventListener('ff:book-control', e => turnNotebookPage(Number(e.detail?.direction) || 0));
 document.getElementById('pagePrev').addEventListener('click', () => turnNotebookPage(-1));
 document.getElementById('pageNext').addEventListener('click', () => turnNotebookPage(1));
 

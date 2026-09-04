@@ -1871,3 +1871,34 @@
     .book-page-block .page-turn-btn { min-width: 74px; padding: 8px 5px; font-size: 10px; }
     .book-page-block .page-indicator { min-width: 106px; font-size: 10px; }
   }
+
+  /* V16 — controls are a real interaction surface, never hidden behind WebGL. */
+  .book-page-block .notebook-nav {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: absolute !important;
+    z-index: 100 !important;
+    pointer-events: auto !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: 22px !important;
+    transform: translateX(-50%) !important;
+    width: min(720px, calc(100vw - 42px)) !important;
+  }
+  /* The fullscreen notebook is a visual overlay; its zero-height flex child
+     must not become the containing block for the controls. */
+  .book-page-block .notebook {
+    position: static !important;
+    height: 100% !important;
+  }
+  .book-page-block .notebook-nav::before,
+  .book-page-block .notebook-nav::after { display: none !important; }
+  .book-page-block .page-turn-btn {
+    position: relative;
+    z-index: 101;
+    pointer-events: auto !important;
+    touch-action: manipulation;
+    cursor: pointer;
+  }
+  .book-page-block .page-indicator { position: relative; z-index: 101; }
