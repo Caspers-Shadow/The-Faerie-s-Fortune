@@ -1825,3 +1825,49 @@
     filter: brightness(.78) saturate(.78) contrast(1.12);
   }
   .book-page-block .notebook-page { background: transparent; }
+
+  /* V15 — obvious page-turn controls and click targets over the 3D canvas. */
+  .book-page-block .notebook-nav {
+    z-index: 6;
+    bottom: 24px;
+    align-items: center;
+    gap: 18px;
+    padding: 8px 12px;
+    border: 1px solid rgba(207,168,91,.55);
+    border-radius: 4px;
+    background: rgba(20,10,7,.86);
+    box-shadow: 0 5px 18px rgba(0,0,0,.36);
+  }
+  .book-page-block .page-turn-btn {
+    min-width: 112px;
+    padding: 9px 12px;
+    color: #f1ddb2;
+    border: 1px solid rgba(207,168,91,.72);
+    border-radius: 3px;
+    background: rgba(61,31,20,.9);
+    text-shadow: 0 1px 3px #080403;
+    pointer-events: auto;
+  }
+  .book-page-block .page-turn-btn:hover:not(:disabled),
+  .book-page-block .page-turn-btn:focus-visible {
+    color: #fff1cb;
+    background: rgba(116,61,35,.96);
+    outline: 2px solid rgba(231,192,110,.7);
+    outline-offset: 2px;
+  }
+  .book-page-block .page-turn-btn:disabled {
+    opacity: .38;
+    cursor: not-allowed;
+  }
+  .book-page-block .page-indicator {
+    min-width: 180px;
+    color: #f1ddb2;
+    text-align: center;
+  }
+  .book-fullscreen-canvas { cursor: pointer; }
+
+  @media (max-width: 760px) {
+    .book-page-block .notebook-nav { bottom: 18px; gap: 6px; padding: 6px; }
+    .book-page-block .page-turn-btn { min-width: 74px; padding: 8px 5px; font-size: 10px; }
+    .book-page-block .page-indicator { min-width: 106px; font-size: 10px; }
+  }

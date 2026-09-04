@@ -263,6 +263,26 @@
   window.addEventListener('ff:book-page', e => setPageData(e.detail));
   window.addEventListener('ff:book-turn', e => turn(e.detail.direction));
 
+  // MOD3-style direct manipulation: click either half of the spread to turn
+  // in that direction, or use the keyboard arrows while the book is open.
+  fullCanvas.addEventListener('click', event => {
+    if (!isOpen || turning) return;
+    const rect = fullCanvas.getBoundingClientRect();
+    const direction = (event.clientX - rect.left) < rect.width / 2 ? -1 : 1;
+    window.dispatchEvent(new CustomEvent('ff:book-turn', { detail: { direction } }));
+  });
+  document.addEventListener('keydown', event => {
+    if (!isOpen || turning) return;
+    const tag = event.target && event.target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      window.dispatchEvent(new CustomEvent('ff:book-turn', {
+        detail: { direction: event.key === 'ArrowLeft' ? -1 : 1 },
+      }));
+    }
+  });
+
   function resize() {
     const cw = Math.max(1, closedCanvas.clientWidth);
     const ch = Math.max(1, closedCanvas.clientHeight);

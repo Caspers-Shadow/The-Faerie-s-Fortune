@@ -217,11 +217,48 @@ drawerOverlay.addEventListener('click', closeDrawer);
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer(); });
 document.getElementById('drawerLogout').addEventListener('click', signOutAndRedirect);
 
-// one session per page, flip with Prev/Next. new notes jump
-// you to the current session's page automatically.
+// Sessions become one or more physical book pages. A page keeps its session
+// identity, and a long list of notes is split into continuation pages.
 let notesBySession = {};
+let bookPages = [];
+
+function buildBookPages() {
+  bookPages = [];
+  sessionsList.forEach((session, sessionOrder) => {
+    const notes = notesBySession[session.id] || [];
+    const chunks = [];
+    if (!notes.length) {
+      chunks.push([]);
+    } else {
+      let chunk = [];
+      let chars = 0;
+      notes.forEach(note => {
+        const cost = String(note.note_text || '').length;
+        // Six short notes or roughly half a page of writing keeps the canvas
+        // readable; overflow continues onto the next page for this session.
+        if (chunk.length && (chunk.length >= 6 || chars + cost > 520)) {
+          chunks.push(chunk);
+          chunk = [];
+          chars = 0;
+        }
+        chunk.push(note);
+        chars += cost;
+      });
+      if (chunk.length) chunks.push(chunk);
+    }
+    chunks.forEach((chunk, part) => bookPages.push({
+      key: session.id + ':' + part,
+      session,
+      sessionNumber: sessionOrder + 1,
+      notes: chunk,
+      part: part + 1,
+      parts: chunks.length,
+    }));
+  });
+}
 
 async function refreshNotebook() {
+  const previousKey = bookPages[pageIndex]?.key;
   const [{ data: sessions }, { data: notes }] = await Promise.all([
     supabaseClient.from('sessions').select('id, label, started_at').eq('party_id', partyId).order('started_at', { ascending: true }),
     supabaseClient.from('log_entries').select('session_id, note_text, created_at, user:profiles(display_name)')
@@ -234,13 +271,16 @@ async function refreshNotebook() {
     if (!notesBySession[n.session_id]) notesBySession[n.session_id] = [];
     notesBySession[n.session_id].push(n);
   });
+  buildBookPages();
 
-  // Keep the page the player is reading during background refreshes. Only
-  // choose the newest session on the first load or if the current index was
-  // invalidated by a newly-created/deleted session.
-  const currentIndex = sessionsList.findIndex(s => s.id === currentSessionId);
-  if (!notebookLoaded || pageIndex < 0 || pageIndex >= sessionsList.length) {
-    pageIndex = Math.max(0, currentIndex);
+  // Keep the page the player is reading during background refreshes. On the
+  // first load, open the last page belonging to the active session.
+  const preservedIndex = previousKey ? bookPages.findIndex(p => p.key === previousKey) : -1;
+  if (notebookLoaded && preservedIndex >= 0) {
+    pageIndex = preservedIndex;
+  } else {
+    const currentPages = bookPages.reduce((last, p, index) => p.session.id === currentSessionId ? index : last, -1);
+    pageIndex = currentPages >= 0 ? currentPages : Math.max(0, bookPages.length - 1);
   }
   notebookLoaded = true;
   renderNotebookPage();
@@ -252,16 +292,18 @@ function renderNotebookPage() {
   const prevBtn = document.getElementById('pagePrev');
   const nextBtn = document.getElementById('pageNext');
 
-  if (sessionsList.length === 0) {
+  if (bookPages.length === 0) {
     pageEl.innerHTML = '<p class="page-empty">No sessions yet.</p>';
     indicatorEl.textContent = '';
     prevBtn.disabled = nextBtn.disabled = true;
     return;
   }
 
-  const s = sessionsList[pageIndex];
-  const notes = notesBySession[s.id] || [];
-  const title = s.label || ('Session ' + (pageIndex + 1));
+  const page = bookPages[pageIndex];
+  const s = page.session;
+  const notes = page.notes;
+  const baseTitle = s.label || ('Session ' + page.sessionNumber);
+  const title = page.part > 1 ? baseTitle + ' · continued' : baseTitle;
 
   let html = `<p class="page-session-title">${escapeHtml(title)}</p><p class="page-session-date">${dateTimeLabel(s.started_at)}</p>`;
   if (notes.length === 0) {
@@ -282,19 +324,19 @@ function renderNotebookPage() {
       time: timeLabel(n.created_at),
     })),
     page: pageIndex + 1,
-    total: sessionsList.length,
+    total: bookPages.length,
   }}));
 
-  indicatorEl.textContent = `Page ${pageIndex + 1} of ${sessionsList.length}`;
+  indicatorEl.textContent = `Page ${pageIndex + 1} of ${bookPages.length} · Session ${page.sessionNumber}${page.parts > 1 ? ` · part ${page.part}/${page.parts}` : ''}`;
   prevBtn.disabled = pageIndex === 0;
-  nextBtn.disabled = pageIndex === sessionsList.length - 1;
+  nextBtn.disabled = pageIndex === bookPages.length - 1;
 }
 
 let pageTurning = false;
 function turnNotebookPage(direction) {
   if (pageTurning) return;
   const nextIndex = pageIndex + direction;
-  if (nextIndex < 0 || nextIndex >= sessionsList.length) return;
+  if (nextIndex < 0 || nextIndex >= bookPages.length) return;
   pageTurning = true;
   // Commit the destination immediately so an overlapping refresh cannot snap
   // the controls back to the latest session while the 3D page is travelling.
