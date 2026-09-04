@@ -1,100 +1,58 @@
-// your parties, plus create/join
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Faerie's Fortune - Your Parties</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=13">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Cpolygon points=%2750,6 90,30 90,70 50,94 10,70 10,30%27 fill=%27%23E8B93E%27 stroke=%27%238C6B32%27 stroke-width=%274%27/%3E%3Ctext x=%2750%27 y=%2763%27 font-family=%27Georgia%27 font-weight=%27900%27 font-size=%2740%27 text-anchor=%27middle%27 fill=%27%231C1712%27%3E20%3C/text%3E%3C/svg%3E">
+</head>
+<body class="auth-page">
 
-let me = null;
-const statusEl = document.getElementById('dashStatus');
+<div class="stage stage-narrow">
+  <header>
+    <p class="eyebrow" id="welcomeLine">The Gaming Table</p>
+    <h1>Your <span>Parties</span></h1>
+  </header>
 
-(async function initDashboard() {
-  try {
-    me = await requireSession();
-    const name = await getDisplayName(me.id);
-    document.getElementById('welcomeLine').textContent = 'Welcome back, ' + name;
-    await loadParties();
-  } catch (err) {
-    if (err && (err.message === 'no session' || err.message === 'cloud not enabled' || err.message === 'redirect loop detected')) return;
-    document.getElementById('partyList').innerHTML = '<p class="party-hint">Something went wrong loading this page: ' + escapeHtml(err && err.message ? err.message : String(err)) + '</p>';
-    console.error(err);
-  }
-})();
+  <div class="auth-row" style="width:min(100%,480px); margin-bottom:20px;">
+    <span></span>
+    <button class="link-btn" id="logoutBtn">Log Out</button>
+  </div>
 
-async function loadParties() {
-  const listEl = document.getElementById('partyList');
-  const { data, error } = await supabaseClient
-    .from('party_members')
-    .select('role, party:parties(id, name, invite_code)')
-    .eq('user_id', me.id);
+  <div class="party-panel" id="partyList" style="width:min(100%,480px);">
+    <p class="party-hint">Loading your parties…</p>
+  </div>
 
-  if (error) { listEl.innerHTML = '<p class="party-hint">Couldn\'t load your parties: ' + escapeHtml(error.message) + '</p>'; return; }
+  <div class="dashboard-actions">
+    <div class="party-panel" id="createPanel">
+      <h2>Found a Party</h2>
+      <p class="party-hint">You'll be its Dungeon Master.</p>
+      <div class="party-form">
+        <input type="text" id="createName" placeholder="Party name (e.g. The Last Lantern)" maxlength="40">
+        <button class="die-btn" id="createBtn">Create</button>
+      </div>
+    </div>
 
-  if (!data || data.length === 0) {
-    listEl.innerHTML = '<h2>Your Parties</h2><p class="party-hint">You\'re not in a party yet. Found one below, or join one with an invite code.</p>';
-    return;
-  }
+    <div class="party-panel" id="joinPanel">
+      <h2>Join a Party</h2>
+      <p class="party-hint">Ask your Dungeon Master for the invite code.</p>
+      <div class="party-form">
+        <input type="text" id="joinCode" placeholder="Invite code" maxlength="6" style="text-transform:uppercase;">
+        <button class="die-btn" id="joinBtn">Join</button>
+      </div>
+    </div>
+  </div>
 
-  listEl.innerHTML = '<h2>Your Parties</h2>';
-  const list = document.createElement('div');
-  list.className = 'member-chips'; // reuse chip layout, but as full-width rows below
-  list.style.flexDirection = 'column';
-  list.style.alignItems = 'stretch';
+  <p class="party-hint auth-status" id="dashStatus" style="text-align:center;"></p>
+</div>
 
-  data.forEach(row => {
-    if (!row.party) return;
-    const card = document.createElement('a');
-    card.href = 'party.html?party=' + encodeURIComponent(row.party.id);
-    card.className = 'party-row-link';
-    const badge = row.role === 'dm' ? 'Dungeon Master' : 'Player';
-    card.innerHTML = `
-      <span class="party-row-name">${escapeHtml(row.party.name)}</span>
-      <span class="party-row-badge ${row.role}">${badge}</span>
-    `;
-    list.appendChild(card);
-  });
-  listEl.appendChild(list);
-}
-
-document.getElementById('createBtn').addEventListener('click', async () => {
-  const nameInput = document.getElementById('createName');
-  const name = nameInput.value.trim();
-  if (!name) return;
-  statusEl.textContent = 'Founding your party…';
-  try {
-    let code, party, partyErr;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      code = genInviteCode();
-      const res = await supabaseClient.from('parties').insert({ name, invite_code: code, dm_id: me.id }).select().single();
-      party = res.data; partyErr = res.error;
-      if (!partyErr) break; // succeeded, or failed for a reason other than a code collision
-    }
-    if (partyErr) { statusEl.textContent = 'Could not create party: ' + partyErr.message; console.error(partyErr); return; }
-
-    const { error: memberErr } = await supabaseClient.from('party_members').insert({ party_id: party.id, user_id: me.id, role: 'dm' });
-    if (memberErr) { statusEl.textContent = 'Could not add you as DM: ' + memberErr.message; console.error(memberErr); return; }
-
-    await supabaseClient.from('sessions').insert({ party_id: party.id, label: 'Session 1' });
-
-    window.location.href = 'party.html?party=' + encodeURIComponent(party.id);
-  } catch (err) {
-    statusEl.textContent = 'Something went wrong: ' + (err && err.message ? err.message : String(err));
-    console.error(err);
-  }
-});
-
-document.getElementById('joinBtn').addEventListener('click', async () => {
-  const codeInput = document.getElementById('joinCode');
-  const code = codeInput.value.trim().toUpperCase();
-  if (!code) return;
-  statusEl.textContent = 'Looking for that party…';
-  try {
-    const { data, error } = await supabaseClient.rpc('join_party_by_code', { p_code: code });
-    if (error) { statusEl.textContent = error.message.includes('No party found') ? 'No party found with that code.' : error.message; console.error(error); return; }
-    if (!data || data.length === 0) { statusEl.textContent = 'No party found with that code.'; return; }
-
-    window.location.href = 'party.html?party=' + encodeURIComponent(data[0].id);
-  } catch (err) {
-    statusEl.textContent = 'Something went wrong: ' + (err && err.message ? err.message : String(err));
-    console.error(err);
-  }
-});
-
-document.getElementById('logoutBtn').addEventListener('click', signOutAndRedirect);
-['createName'].forEach(id => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('createBtn').click(); }));
-document.getElementById('joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('joinBtn').click(); });
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=5"></script>
+<script src="supabase-client.js?v=5"></script>
+<script src="dashboard.js?v=5"></script>
+</body>
+</html>
