@@ -8,7 +8,7 @@ let party = null;
 let myRole = null;       // 'dm' | 'player'
 let currentSessionId = null;
 let sessionsList = [];   // ascending by started_at
-let pageIndex = 0;       // index into sessionsList currently shown in the notebook
+let pageIndex = 0;       // first physical page in the current two-page spread
 let notebookLoaded = false;
 let introCoverOnOpen = false;
 let onlineIds = new Set();
@@ -296,8 +296,8 @@ async function refreshNotebook() {
   if (notebookLoaded && preservedIndex >= 0) {
     pageIndex = preservedIndex;
   } else {
-    const currentPages = bookPages.reduce((last, p, index) => p.session.id === currentSessionId ? index : last, -1);
-    pageIndex = currentPages >= 0 ? currentPages : Math.max(0, bookPages.length - 1);
+    const currentPage = bookPages.reduce((last, p, index) => p.session.id === currentSessionId ? index : last, -1);
+    pageIndex = currentPage < 0 ? 0 : (currentPage === 0 ? 0 : (currentPage % 2 ? currentPage + 1 : currentPage));
   }
   notebookLoaded = true;
   renderNotebookPage();
@@ -313,7 +313,9 @@ function renderNotebookPage() {
     return;
   }
 
-  const page = bookPages[pageIndex];
+  const rightPhysicalIndex = pageIndex;
+  const page = bookPages[rightPhysicalIndex] || bookPages[rightPhysicalIndex - 1];
+  if (!page) return;
   const s = page.session;
   const notes = page.notes;
   const baseTitle = s.label || ('Session ' + page.sessionNumber);
@@ -342,17 +344,23 @@ function renderNotebookPage() {
     page: physicalPage,
     total: bookPages.length,
   });
-  const rightPage = {
-    ...pagePayload(page, pageIndex + 1),
-  };
   const leftPage = pageIndex === 0
     ? { cover: true, page: 0, total: bookPages.length }
     : pagePayload(bookPages[pageIndex - 1], pageIndex);
+  const rightPage = bookPages[rightPhysicalIndex]
+    ? pagePayload(bookPages[rightPhysicalIndex], rightPhysicalIndex + 1)
+    : { blank: true, page: 0, total: bookPages.length };
   window.dispatchEvent(new CustomEvent('ff:book-spread', {
     detail: { left: leftPage, right: rightPage },
   }));
 
-  indicatorEl.textContent = `Page ${pageIndex + 1} of ${bookPages.length} · Session ${page.sessionNumber}${page.parts > 1 ? ` · part ${page.part}/${page.parts}` : ''}`;
+  const leftNumber = pageIndex === 0 ? 1 : pageIndex;
+  const visibleLabel = rightPage.blank
+    ? `Page ${leftNumber} of ${bookPages.length}`
+    : pageIndex === 0
+      ? `Page 1 of ${bookPages.length}`
+      : `Pages ${leftNumber}–${rightPage.page} of ${bookPages.length}`;
+  indicatorEl.textContent = `${visibleLabel} · Session ${page.sessionNumber}${page.parts > 1 ? ` · part ${page.part}/${page.parts}` : ''}`;
 }
 
 let pageTurning = false;
@@ -362,8 +370,9 @@ function turnNotebookPage(direction) {
   // lock so the navigation never becomes permanently unresponsive.
   if (pageTurning && Date.now() - pageTurningSince > 2200) pageTurning = false;
   if (pageTurning) return;
-  const nextIndex = pageIndex + direction;
-  if (nextIndex < 0 || nextIndex >= bookPages.length) return;
+  const maxSpreadIndex = bookPages.length % 2 === 0 ? bookPages.length : bookPages.length - 1;
+  const nextIndex = pageIndex + direction * 2;
+  if (nextIndex < 0 || nextIndex > maxSpreadIndex) return;
   pageTurning = true;
   pageTurningSince = Date.now();
   // Commit the destination immediately so an overlapping refresh cannot snap

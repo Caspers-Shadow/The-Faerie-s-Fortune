@@ -205,6 +205,30 @@
   }
 
   let currentData = { title: 'The Party Chronicle', date: '', notes: [], page: 1, total: 1 };
+  function blankTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 900;
+    canvas.height = 1240;
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+    gradient.addColorStop(0, '#a98b5e');
+    gradient.addColorStop(.1, '#d8c08e');
+    gradient.addColorStop(1, '#d2b985');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = 'rgba(104,72,35,.14)';
+    ctx.lineWidth = 2;
+    for (let y = 255; y < 1130; y += 56) {
+      ctx.beginPath(); ctx.moveTo(90, y); ctx.lineTo(810, y); ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(99,69,33,.35)';
+    ctx.font = 'italic 26px Georgia';
+    ctx.textAlign = 'center';
+    ctx.fillText('✦', 450, 1175);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.anisotropy = 4;
+    return texture;
+  }
   function coverTexture(side) {
     const canvas = document.createElement('canvas');
     canvas.width = 900;
@@ -250,8 +274,14 @@
   function setSpreadData(spread) {
     currentSpread = spread || currentSpread;
     currentData = currentSpread.right || currentData;
-    replaceMap(leftPage, currentSpread.left?.cover ? coverTexture('left') : pageTexture(currentSpread.left, 'left'));
-    replaceMap(rightPage, pageTexture(currentSpread.right || currentData, 'right'));
+    replaceMap(leftPage, currentSpread.left?.cover
+      ? coverTexture('left')
+      : currentSpread.left?.blank
+        ? blankTexture()
+        : pageTexture(currentSpread.left, 'left'));
+    replaceMap(rightPage, currentSpread.right?.blank
+      ? blankTexture()
+      : pageTexture(currentSpread.right || currentData, 'right'));
   }
   setSpreadData(currentSpread);
 
@@ -266,11 +296,18 @@
     turning = true;
     turningStartedAt = performance.now();
     turningPage.visible = true;
-    turningPivot.rotation.z = direction > 0 ? 0 : Math.PI;
+    turningPivot.rotation.z = 0;
+    // Forward turns the right leaf; backward turns the left leaf. The new
+    // spread is painted after the leaf finishes travelling.
     const turningData = direction > 0 ? currentSpread.right : currentSpread.left;
-    replaceMap(turningPage, turningData?.cover ? coverTexture('left') : pageTexture(turningData || currentData, direction > 0 ? 'right' : 'left'));
-    const from = turningPivot.rotation.z;
+    replaceMap(turningPage, turningData?.cover
+      ? coverTexture('left')
+      : turningData?.blank
+        ? blankTexture()
+        : pageTexture(turningData || currentData, direction > 0 ? 'right' : 'left'));
+    const from = direction > 0 ? 0 : Math.PI;
     const to = direction > 0 ? Math.PI : 0;
+    turningPivot.rotation.z = from;
     const start = performance.now();
     const duration = reducedMotion ? 1 : 720;
     function frame(now) {
@@ -320,7 +357,6 @@
   window.addEventListener('ff:book-open', () => { isOpen = true; resize(); });
   window.addEventListener('ff:book-close', () => { isOpen = false; });
   window.addEventListener('ff:book-cover', showBackCover);
-  window.addEventListener('ff:book-page', e => setSpreadData({ left: null, right: e.detail }));
   window.addEventListener('ff:book-spread', e => setSpreadData(e.detail));
   window.addEventListener('ff:book-turn', e => turn(e.detail.direction));
 
@@ -335,17 +371,6 @@
     const direction = normalizedX < .5 ? -1 : 1;
     window.dispatchEvent(new CustomEvent('ff:book-control', { detail: { direction } }));
   });
-  // Keep the controls working even if the canvas receives the physical click
-  // because of a browser's transformed-layer hit testing.
-  document.addEventListener('click', event => {
-    const button = event.target && event.target.closest && event.target.closest('#pagePrev, #pageNext');
-    if (!button || !isOpen) return;
-    event.preventDefault();
-    event.stopPropagation();
-    window.dispatchEvent(new CustomEvent('ff:book-control', {
-      detail: { direction: button.id === 'pageNext' ? 1 : -1 },
-    }));
-  }, true);
   document.addEventListener('keydown', event => {
     if (!isOpen || turning) return;
     const tag = event.target && event.target.tagName;
