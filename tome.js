@@ -228,7 +228,7 @@
     const height=shell.clientHeight||700;
     // The contents page also has no scrollbars. Reserve the title,
     // introduction and navigation space, then fit chapter rows.
-    return Math.max(2,Math.floor((height-340)/49));
+    return Math.max(2,Math.floor((height-370)/62));
   }
 
   function rebuildPages() {
