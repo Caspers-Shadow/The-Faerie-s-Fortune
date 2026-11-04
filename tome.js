@@ -133,7 +133,8 @@
   function makeProbe(session,index,isLatest) {
     const probe=el('div','tome-page tome-page--right tome-probe');
     probe.setAttribute('aria-hidden','true');
-    probe.appendChild(pageHead('FOLIO'));
+    const header=pageHead('FOLIO');
+    probe.appendChild(header);
     const scroll=el('div','tome-scroll');
     const heading=el('h2','tome-heading',session.label||'Session '+(index+1));
     const date=el('p','tome-date',dateLabel(session.started_at));
@@ -146,7 +147,7 @@
       probe.appendChild(footer);
     } else probe.appendChild(el('p','tome-sealed','✦ This chapter is sealed.'));
     shell.appendChild(probe);
-    return {probe,scroll,list,heading,date};
+    return {probe,scroll,list,heading,date,header};
   }
   function hasOverflow(scroll) {
     const available = scroll.clientHeight || Math.max(160,(shell.clientHeight || 650)-250);
@@ -179,7 +180,7 @@
   function paginateSession(session,index) {
     const notes=notesBySession[session.id]||[];
     const isLatest=index===sessions.length-1;
-    const {probe,scroll,list,heading,date}=makeProbe(session,index,isLatest);
+    const {probe,scroll,list,heading,date,header}=makeProbe(session,index,isLatest);
     const chunks=[];
     let chunk=[];
     function finishChunk() {
@@ -191,6 +192,7 @@
       if(chunks.length===1){
         heading.remove();
         date.remove();
+        header.classList.add('tome-page-head--continuation');
       }
     }
     if(!notes.length){finishChunk();}
@@ -254,6 +256,7 @@
   }
 
   function renderContents(target,page,staticOnly=false) {
+    target.classList.remove('tome-session-continuation');
     target.replaceChildren();
     target.setAttribute('aria-label','Table of contents'+(page.part>1?' continued':''));
     target.appendChild(pageHead('CONTENTS '+(page.parts>1?page.part+'/'+page.parts:'')));
@@ -293,6 +296,7 @@
   }
 
   function renderBlank(target) {
+    target.classList.remove('tome-session-continuation');
     target.replaceChildren();target.setAttribute('aria-label','Blank end page');
     target.appendChild(pageHead(''));
     const blank=el('div','tome-blank-content');
@@ -304,6 +308,7 @@
   function renderSession(target,page,staticOnly=false) {
     const {session,sessionIndex,part,parts,fragments,lastPart}=page;
     const writable=lastPart && sessionIndex===sessions.length-1;
+    target.classList.toggle('tome-session-continuation',part>1);
     target.replaceChildren();
     target.setAttribute('aria-label',(session.label||'Session '+(sessionIndex+1))+
       (parts>1?' continued page '+part:''));
