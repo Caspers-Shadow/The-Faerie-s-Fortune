@@ -8,74 +8,65 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=30">
-<link rel="stylesheet" href="chronicle.css?v=31">
+<link rel="stylesheet" href="chronicle.css?v=32">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Cpolygon points=%2750,6 90,30 90,70 50,94 10,70 10,30%27 fill=%27%23E8B93E%27 stroke=%27%238C6B32%27 stroke-width=%274%27/%3E%3Ctext x=%2750%27 y=%2763%27 font-family=%27Georgia%27 font-weight=%27900%27 font-size=%2740%27 text-anchor=%27middle%27 fill=%27%231C1712%27%3E20%3C/text%3E%3C/svg%3E">
 </head>
 <body>
 
+
 <div class="chronicle-overlay" id="drawerOverlay" hidden></div>
 <aside class="chronicle-modal" id="drawer" role="dialog" aria-modal="true" aria-labelledby="chronicleTitle" aria-hidden="true">
   <div class="chronicle-stage">
-    <div class="chronicle-book">
+    <div class="chronicle-book" id="chronicleBook">
       <div class="chronicle-spread">
-        <section class="chronicle-leaf chronicle-leaf-left" id="chronicleLeftLeaf" aria-label="Previous session">
-          <div class="chronicle-page-top">
-            <span class="chronicle-eyebrow">Earlier in the Chronicle</span>
-            <span class="chronicle-folio" id="leftFolio" aria-hidden="true"></span>
-          </div>
-          <div class="chronicle-session-page" id="leftNotebookPage">
-            <div class="chronicle-frontispiece">
-              <span class="chronicle-frontispiece-mark">✧</span>
-              <h3>Every tale begins somewhere</h3>
-              <p>Turn the leaves and discover the stories kept within.</p>
-            </div>
-          </div>
-          <form class="chronicle-compose" id="leftNoteForm" hidden>
-            <label class="sr-only" for="leftNoteInput">Write a note for the session on the left page</label>
-            <input type="text" id="leftNoteInput" placeholder="A note for this session…" maxlength="200">
-            <button type="submit" id="leftNoteBtn">Inscribe</button>
-          </form>
-        </section>
-        <section class="chronicle-leaf chronicle-leaf-menu show-contents" id="chronicleMenuPage" aria-label="Chronicle menu">
+        <section class="chronicle-leaf chronicle-inside-cover" aria-label="Inside cover and chronicle navigation">
           <p class="chronicle-eyebrow">The Faerie's Fortune</p>
-          <span class="chronicle-menu-crest" aria-hidden="true">☾ ✦ ☽</span>
-          <h2 id="chronicleTitle">The Party Chronicle</h2>
-          <p class="chronicle-menu-subtitle">An archive of deeds, dreams and dangerous decisions</p>
-          <div class="chronicle-rule"></div>
-          <nav class="chronicle-links">
-            <a href="dashboard.html">← Your Parties</a>
-            <button id="drawerLogout" type="button">Log Out</button>
-          </nav>
-          <h3 class="chronicle-section-title">The Chapters</h3>
-          <div class="chronicle-toc" id="bookSessionList" aria-label="Choose a session"></div>
-          <p class="chronicle-menu-footer">“May the ink remember what the world forgets.”</p>
+          <div class="chronicle-inside-ornament" aria-hidden="true">
+            <span class="chronicle-inside-ring"><span>✦</span></span>
+            <span class="chronicle-inside-motto">Verba manent · Memoria vivit</span>
+          </div>
+          <h2 class="chronicle-inside-title">The Keeper's<br>Chronicle</h2>
+          <p class="chronicle-inside-quote">Here are kept the whispers, deeds and legends of those who walked beyond the ordinary world.</p>
+          <div class="chronicle-inside-bottom">
+            <button type="button" class="chronicle-contents-link" id="chronicleTocToggle">✧ Return to Contents</button>
+            <nav class="chronicle-links" aria-label="Party navigation">
+              <a href="dashboard.html">← Your Parties</a>
+              <button type="button" id="drawerLogout">Log Out</button>
+            </nav>
+          </div>
         </section>
-        <section class="chronicle-leaf chronicle-leaf-notes" aria-label="Session notes">
+        <section class="chronicle-leaf chronicle-leaf-notes" aria-label="Current chronicle page">
           <div class="chronicle-page-top">
-            <span class="chronicle-eyebrow">✧ &nbsp; The Adventurer's Record &nbsp; ✧</span>
-            <div>
-              <button class="chronicle-toc-toggle" id="chronicleTocToggle" aria-expanded="true" type="button">☷ &nbsp; Contents</button>
-              <button class="chronicle-close" id="drawerClose" type="button" aria-label="Close the chronicle">×</button>
-            </div>
+            <span class="chronicle-eyebrow" id="chroniclePageEyebrow">The Chronicle · Contents</span>
+            <button class="chronicle-close" id="drawerClose" type="button" aria-label="Close the book">×</button>
           </div>
-          <div class="chronicle-session-page" id="notebookPage" aria-live="polite">
-            <p class="page-empty">Loading sessions…</p>
+          <div class="chronicle-contents-page" id="chronicleMenuPage">
+            <div class="chronicle-contents-crest" aria-hidden="true">☾ &nbsp; ✦ &nbsp; ☽</div>
+            <h2 id="chronicleTitle">Table of Contents</h2>
+            <p class="chronicle-contents-intro">An index of every adventure and all that the party has dared to remember.</p>
+            <div class="chronicle-rule"></div>
+            <div class="chronicle-toc" id="bookSessionList" aria-label="Choose a session"></div>
+            <p class="chronicle-contents-footer">Turn the page, and let the tale begin.</p>
           </div>
-          <form class="chronicle-compose" id="rightNoteForm">
-            <label class="sr-only" for="noteInput">Write a note for the session on the right page</label>
-            <input type="text" id="noteInput" placeholder="Write a note for this session…" maxlength="200">
+          <div class="chronicle-session-page" id="notebookPage" aria-live="polite" hidden>
+            <p class="page-empty">Loading the archive…</p>
+          </div>
+          <form class="chronicle-compose" id="rightNoteForm" hidden>
+            <label class="sr-only" for="noteInput">Add a note to the current session</label>
+            <input type="text" id="noteInput" placeholder="Inscribe a memory…" maxlength="200">
             <button type="submit" id="noteBtn">Inscribe</button>
           </form>
+          <p class="chronicle-readonly" id="chronicleReadOnlyNote" hidden>✦ This chapter is sealed. Notes can only be added to the newest session.</p>
         </section>
         <div class="chronicle-turn-leaf" id="chronicleTurnLeaf" aria-hidden="true">
           <div class="chronicle-turn-copy"></div>
         </div>
       </div>
       <div class="chronicle-cover" aria-hidden="true">
-        <span class="chronicle-cover-corner top-left" aria-hidden="true">✧</span>
-        <span class="chronicle-cover-corner top-right" aria-hidden="true">✧</span>
-        <span class="chronicle-cover-corner bottom-left" aria-hidden="true">✧</span>
-        <span class="chronicle-cover-corner bottom-right" aria-hidden="true">✧</span>
+        <span class="chronicle-cover-corner top-left">✧</span>
+        <span class="chronicle-cover-corner top-right">✧</span>
+        <span class="chronicle-cover-corner bottom-left">✧</span>
+        <span class="chronicle-cover-corner bottom-right">✧</span>
         <span class="chronicle-cover-kicker">The Faerie's Fortune</span>
         <span class="chronicle-cover-mark">✦</span>
         <strong>The Party<br>Chronicle</strong>
@@ -83,10 +74,10 @@
         <span class="chronicle-cover-caption">A record of forgotten realms</span>
       </div>
     </div>
-    <nav class="chronicle-toolbar" aria-label="Chronicle page navigation">
-      <button id="pagePrev" type="button" disabled>‹ Previous</button>
-      <span id="pageIndicator" class="chronicle-page-count" aria-live="polite">Loading…</span>
-      <button id="pageNext" type="button" disabled>Next ›</button>
+    <nav class="chronicle-toolbar" aria-label="Book page navigation">
+      <button id="pagePrev" type="button" disabled>‹ Previous page</button>
+      <span id="pageIndicator" class="chronicle-page-count" aria-live="polite">Contents</span>
+      <button id="pageNext" type="button" disabled>Next page ›</button>
     </nav>
   </div>
 </aside>
@@ -159,9 +150,9 @@
 <!-- 3D dice -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="dice.js?v=5"></script>
-<script src="book.js?v=31"></script>
+<script src="book.js?v=32"></script>
 
 <!-- This party's roster, sessions, and shared log -->
-<script src="party-room.js?v=31"></script>
+<script src="party-room.js?v=32"></script>
 </body>
 </html>
