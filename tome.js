@@ -121,20 +121,24 @@
   }
 
   async function close() {
-    if (state !== 'open') return;
+    if (state === 'closed' || state === 'closing' || state === 'returning') return;
     const token = ++motionToken;
+    const wasTravelling = state === 'moving';
     busy = true;
     activeTurn++;
     turn.className = 'tome-turn';
-    // The page stack closes with the cover, not while the entire book
-    // is already moving away.
-    const hingeDone = motionFinished(cover, 'transform', 1880);
-    state = 'closing'; root.dataset.state = 'closing';
-    spread.inert=true;
+    spread.inert = true;
     spread.setAttribute('aria-hidden','true');
-    closeButton.disabled=true;
-    await hingeDone;
-    if (token !== motionToken) return;
+    closeButton.disabled = true;
+
+    if (!wasTravelling) {
+      // Reverses even a half-open cover smoothly if the reader clicks outside.
+      const hingeDone = motionFinished(cover, 'transform', 1880);
+      state = 'closing'; root.dataset.state = 'closing';
+      await hingeDone;
+      if (token !== motionToken) return;
+    }
+
     const travelDone = motionFinished(shell, 'transform', 1420);
     state = 'returning'; root.dataset.state = 'returning';
     await travelDone;
@@ -525,9 +529,13 @@
   left.addEventListener('click',event=>pageClick(-1,event));
   right.addEventListener('click',event=>pageClick(1,event));
 
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape' && state!=='closed'){
+      event.preventDefault();close();
+    }
+  });
   root.addEventListener('keydown',event=>{
     if(state!=='open')return;
-    if(event.key==='Escape'){event.preventDefault();close();return;}
     const tag=event.target?.tagName;
     if(tag==='INPUT'||tag==='TEXTAREA')return;
     if(event.key==='ArrowRight'||event.key==='ArrowLeft'){
