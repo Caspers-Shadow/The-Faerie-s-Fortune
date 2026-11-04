@@ -217,3 +217,7 @@
 
 /* The decorative turning sheet must never intercept notes, links, or page taps. */
 .tome-root .tome-turn,.tome-root .tome-turn *{pointer-events:none!important}
+
+/* Page-corner cues belong to the resting parchment, not the moving leaf. */
+.tome-root .tome-turn-face::before,
+.tome-root .tome-turn-face::after{content:none!important}
