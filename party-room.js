@@ -35,7 +35,7 @@ let onlineIds = new Set();
   setupLogSync();
   await renderPartyInfo();
   await refreshLog();
-  await refreshNotebook();
+  await refreshNotebook({ selectLatest: true });
 })();
 
 function showBlocked(message) {
@@ -139,7 +139,7 @@ async function startNewSession() {
   notebookLoaded = false;
   await supabaseClient.from('log_entries').insert({ party_id: partyId, session_id: currentSessionId, user_id: me.id, type: 'session' });
   await refreshLog();
-  await refreshNotebook();
+  await refreshNotebook({ selectLatest: true });
 }
 
 // just rolls and session dividers, notes live in the notebook now
@@ -193,219 +193,126 @@ async function recordRoll(cfg, display, isCrit, isFail) {
   await refreshLog();
 }
 
-// top-left menu button, slide-in panel with nav + the notebook
-const menuBtn = document.getElementById('hamburgerBtn');
+// Session chronicle state: one session occupies one page.
 const drawer = document.getElementById('drawer');
-const drawerOverlay = document.getElementById('drawerOverlay');
-
-function openDrawer() {
-  drawer.classList.add('open'); drawerOverlay.classList.add('open'); drawerOverlay.hidden = false;
-  menuBtn.setAttribute('aria-expanded', 'true'); drawer.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('book-open');
-  // Each opening begins with the inside of the back cover, then lands on the
-  // first session page rather than jumping straight to the newest session.
-  introCoverOnOpen = true;
-  notebookLoaded = false;
-  window.dispatchEvent(new CustomEvent('ff:book-cover'));
-  refreshNotebook();
-  window.dispatchEvent(new CustomEvent('ff:book-open'));
-}
-function closeDrawer() {
-  drawer.classList.remove('open'); drawerOverlay.classList.remove('open');
-  menuBtn.setAttribute('aria-expanded', 'false'); drawer.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('book-open');
-  window.dispatchEvent(new CustomEvent('ff:book-close'));
-  setTimeout(() => { drawerOverlay.hidden = true; }, 700);
-}
-menuBtn.addEventListener('click', () => (drawer.classList.contains('open') ? closeDrawer() : openDrawer()));
-document.getElementById('drawerClose').addEventListener('click', closeDrawer);
-drawerOverlay.addEventListener('click', closeDrawer);
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer(); });
-document.getElementById('drawerLogout').addEventListener('click', signOutAndRedirect);
-
-// Sessions become one or more physical book pages. A page keeps its session
-// identity, and a long list of notes is split into continuation pages.
+const menuBtn = document.getElementById('hamburgerBtn');
 let notesBySession = {};
-let bookPages = [];
+let chronicleBusy = false;
+let notebookRequest = 0;
 
-function buildBookPages() {
-  bookPages = [];
-  sessionsList.forEach((session, sessionOrder) => {
-    const notes = notesBySession[session.id] || [];
-    const chunks = [];
-    if (!notes.length) {
-      chunks.push([]);
-    } else {
-      let chunk = [];
-      let chars = 0;
-      notes.forEach(note => {
-        const cost = String(note.note_text || '').length;
-        // Six short notes or roughly half a page of writing keeps the canvas
-        // readable; overflow continues onto the next page for this session.
-        if (chunk.length && (chunk.length >= 6 || chars + cost > 520)) {
-          chunks.push(chunk);
-          chunk = [];
-          chars = 0;
-        }
-        chunk.push(note);
-        chars += cost;
-      });
-      if (chunk.length) chunks.push(chunk);
-    }
-    chunks.forEach((chunk, part) => bookPages.push({
-      key: session.id + ':' + part,
-      session,
-      sessionNumber: sessionOrder + 1,
-      notes: chunk,
-      part: part + 1,
-      parts: chunks.length,
-    }));
-  });
-}
-
-async function refreshNotebook() {
-  const showCoverThenFirstPage = introCoverOnOpen;
-  introCoverOnOpen = false;
-  const previousKey = bookPages[pageIndex]?.key;
-  const [{ data: sessions }, { data: notes }] = await Promise.all([
-    supabaseClient.from('sessions').select('id, label, started_at').eq('party_id', partyId).order('started_at', { ascending: true }),
-    supabaseClient.from('log_entries').select('session_id, note_text, created_at, user:profiles(display_name)')
+async function refreshNotebook(options = {}) {
+  if (!partyId || !me) return;
+  const request = ++notebookRequest;
+  const selectedId = options.selectSessionId ||
+    (options.selectLatest ? currentSessionId : sessionsList[pageIndex]?.id);
+  const [{ data: sessions, error: sessionsError }, { data: notes, error: notesError }] = await Promise.all([
+    supabaseClient.from('sessions').select('id, label, started_at')
+      .eq('party_id', partyId).order('started_at', { ascending: true }),
+    supabaseClient.from('log_entries')
+      .select('session_id, note_text, created_at, user:profiles(display_name)')
       .eq('party_id', partyId).eq('type', 'note').order('created_at', { ascending: true }),
   ]);
-
-  sessionsList = sessions || [];
-  notesBySession = {};
-  (notes || []).forEach(n => {
-    if (!notesBySession[n.session_id]) notesBySession[n.session_id] = [];
-    notesBySession[n.session_id].push(n);
-  });
-  buildBookPages();
-
-  if (showCoverThenFirstPage) {
-    pageIndex = 0;
-    notebookLoaded = true;
-    // Give the back-cover texture a moment to be seen before the first sheet
-    // arrives, as it would when opening a physical book.
-    window.setTimeout(renderNotebookPage, 620);
+  if (request !== notebookRequest) return;
+  const page = document.getElementById('notebookPage');
+  if (sessionsError || notesError) {
+    page.textContent = 'Could not load the chronicle. Refresh to try again.';
+    console.error('Chronicle loading failed', sessionsError, notesError);
     return;
   }
-
-  // Keep the page the player is reading during background refreshes. On the
-  // first load, open the last page belonging to the active session.
-  const preservedIndex = previousKey ? bookPages.findIndex(p => p.key === previousKey) : -1;
-  if (notebookLoaded && preservedIndex >= 0) {
-    pageIndex = preservedIndex;
-  } else {
-    const currentPage = bookPages.reduce((last, p, index) => p.session.id === currentSessionId ? index : last, -1);
-    pageIndex = currentPage < 0 ? 0 : (currentPage === 0 ? 0 : (currentPage % 2 ? currentPage + 1 : currentPage));
-  }
-  notebookLoaded = true;
+  sessionsList = sessions || [];
+  notesBySession = {};
+  (notes || []).forEach(note => {
+    (notesBySession[note.session_id] ||= []).push(note);
+  });
+  const selectedIndex = sessionsList.findIndex(s => s.id === selectedId);
+  pageIndex = selectedIndex >= 0 ? selectedIndex :
+    Math.min(pageIndex, Math.max(0, sessionsList.length - 1));
   renderNotebookPage();
 }
 
 function renderNotebookPage() {
   const pageEl = document.getElementById('notebookPage');
-  const indicatorEl = document.getElementById('pageIndicator');
-
-  if (bookPages.length === 0) {
-    pageEl.innerHTML = '<p class="page-empty">No sessions yet.</p>';
-    indicatorEl.textContent = '';
+  const indicator = document.getElementById('pageIndicator');
+  if (!sessionsList.length) {
+    pageEl.innerHTML = '<p class="page-empty">No sessions yet. Your DM can start the first one.</p>';
+    indicator.textContent = 'No sessions';
+    window.dispatchEvent(new CustomEvent('ff:book-data', { detail: { sessions: [], index: 0 } }));
     return;
   }
+  pageIndex = Math.max(0, Math.min(pageIndex, sessionsList.length - 1));
+  const session = sessionsList[pageIndex];
+  const notes = notesBySession[session.id] || [];
+  const title = session.label || ('Session ' + (pageIndex + 1));
+  const date = dateTimeLabel(session.started_at);
 
-  const rightPhysicalIndex = pageIndex;
-  const page = bookPages[rightPhysicalIndex] || bookPages[rightPhysicalIndex - 1];
-  if (!page) return;
-  const s = page.session;
-  const notes = page.notes;
-  const baseTitle = s.label || ('Session ' + page.sessionNumber);
-  const title = page.part > 1 ? baseTitle + ' · continued' : baseTitle;
-
-  let html = `<p class="page-session-title">${escapeHtml(title)}</p><p class="page-session-date">${dateTimeLabel(s.started_at)}</p>`;
-  if (notes.length === 0) {
-    html += '<p class="page-empty">No notes written in this session.</p>';
+  let html = '<h3 class="page-session-title">' + escapeHtml(title) + '</h3>' +
+    '<p class="page-session-date">' + escapeHtml(date) + '</p>';
+  if (!notes.length) {
+    html += '<p class="page-empty">No notes written in this session yet.</p>';
   } else {
-    html += '<ul class="page-notes">' + notes.map(n =>
-      `<li><span class="note-author">${n.user ? escapeHtml(n.user.display_name) : 'Someone'}:</span>${escapeHtml(n.note_text)}<span class="note-time">${timeLabel(n.created_at)}</span></li>`
+    html += '<ul class="page-notes">' + notes.map(note =>
+      '<li><span class="note-author">' +
+      (note.user ? escapeHtml(note.user.display_name) : 'Someone') + ':</span> ' +
+      escapeHtml(note.note_text || '') +
+      '<span class="note-time">' + escapeHtml(timeLabel(note.created_at)) + '</span></li>'
     ).join('') + '</ul>';
   }
   pageEl.innerHTML = html;
-
-  const pagePayload = (bookPage, physicalPage) => ({
-    title: bookPage.part > 1
-      ? (bookPage.session.label || ('Session ' + bookPage.sessionNumber)) + ' · continued'
-      : (bookPage.session.label || ('Session ' + bookPage.sessionNumber)),
-    date: dateTimeLabel(bookPage.session.started_at),
-    notes: bookPage.notes.map(n => ({
-      author: n.user ? n.user.display_name : 'Someone',
-      text: n.note_text,
-      time: timeLabel(n.created_at),
-    })),
-    page: physicalPage,
-    total: bookPages.length,
-  });
-  const leftPage = pageIndex === 0
-    ? { cover: true, page: 0, total: bookPages.length }
-    : pagePayload(bookPages[pageIndex - 1], pageIndex);
-  const rightPage = bookPages[rightPhysicalIndex]
-    ? pagePayload(bookPages[rightPhysicalIndex], rightPhysicalIndex + 1)
-    : { blank: true, page: 0, total: bookPages.length };
-  window.dispatchEvent(new CustomEvent('ff:book-spread', {
-    detail: { left: leftPage, right: rightPage },
-  }));
-
-  const leftNumber = pageIndex === 0 ? 1 : pageIndex;
-  const visibleLabel = rightPage.blank
-    ? `Page ${leftNumber} of ${bookPages.length}`
-    : pageIndex === 0
-      ? `Page 1 of ${bookPages.length}`
-      : `Pages ${leftNumber}–${rightPage.page} of ${bookPages.length}`;
-  indicatorEl.textContent = `${visibleLabel} · Session ${page.sessionNumber}${page.parts > 1 ? ` · part ${page.part}/${page.parts}` : ''}`;
+  pageEl.scrollTop = 0;
+  indicator.textContent = 'Session ' + (pageIndex + 1) + ' of ' + sessionsList.length;
+  window.dispatchEvent(new CustomEvent('ff:book-data', { detail: {
+    index: pageIndex, sessions: sessionsList.map((s, i) =>
+      ({ id: s.id, title: s.label || ('Session ' + (i + 1)) }))
+  }}));
 }
 
-let pageTurning = false;
-let pageTurningSince = 0;
-function turnNotebookPage(direction) {
-  // Background tabs can throttle animation frames. Recover from a stale turn
-  // lock so the navigation never becomes permanently unresponsive.
-  if (pageTurning && Date.now() - pageTurningSince > 2200) pageTurning = false;
-  if (pageTurning) return;
-  const maxSpreadIndex = bookPages.length % 2 === 0 ? bookPages.length : bookPages.length - 1;
-  const nextIndex = pageIndex + direction * 2;
-  if (nextIndex < 0 || nextIndex > maxSpreadIndex) return;
-  pageTurning = true;
-  pageTurningSince = Date.now();
-  // Commit the destination immediately so an overlapping refresh cannot snap
-  // the controls back to the latest session while the 3D page is travelling.
-  pageIndex = nextIndex;
+function goToNotebookPage(index) {
+  if (chronicleBusy || !Number.isInteger(index) || index < 0 || index >= sessionsList.length) return;
+  if (pageIndex === index) return;
+  const direction = index > pageIndex ? 1 : -1;
+  chronicleBusy = true;
   window.dispatchEvent(new CustomEvent('ff:book-turn', { detail: { direction } }));
-  const pageEl = document.getElementById('notebookPage');
-  pageEl.classList.add(direction > 0 ? 'turning-next' : 'turning-prev');
-  // Update the readable page immediately. The canvas continues its curl while
-  // the DOM content and page counter move to the destination.
-  window.setTimeout(renderNotebookPage, 80);
-  setTimeout(() => {
-    renderNotebookPage();
-    pageEl.classList.remove('turning-next', 'turning-prev');
-    pageEl.classList.add(direction > 0 ? 'arriving-next' : 'arriving-prev');
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      pageEl.classList.remove('arriving-next', 'arriving-prev');
-      setTimeout(() => { pageTurning = false; pageTurningSince = 0; }, 340);
-    }));
-  }, 340);
+  // Data updates independently from decorative animation; controls never rely on animation events.
+  pageIndex = index;
+  renderNotebookPage();
+  window.setTimeout(() => { chronicleBusy = false; }, 450);
 }
 
-window.addEventListener('ff:book-control', e => turnNotebookPage(Number(e.detail?.direction) || 0));
+window.addEventListener('ff:book-control', event => {
+  const direction = Number(event.detail?.direction) || 0;
+  if (direction === -1 || direction === 1) goToNotebookPage(pageIndex + direction);
+});
+window.addEventListener('ff:book-go', event => goToNotebookPage(Number(event.detail?.index)));
 
 document.getElementById('noteBtn').addEventListener('click', async () => {
   const input = document.getElementById('noteInput');
+  const button = document.getElementById('noteBtn');
   const text = input.value.trim();
-  if (!text || !currentSessionId) return;
-  input.value = '';
-  await supabaseClient.from('log_entries').insert({
-    party_id: partyId, session_id: currentSessionId, user_id: me.id, type: 'note', note_text: text,
+  const targetSession = sessionsList[pageIndex];
+  if (!text || !targetSession || button.disabled) return;
+  button.disabled = true;
+  const { error } = await supabaseClient.from('log_entries').insert({
+    party_id: partyId, session_id: targetSession.id,
+    user_id: me.id, type: 'note', note_text: text,
   });
-  await refreshNotebook();
+  button.disabled = false;
+  if (error) {
+    console.error('Could not save the note:', error);
+    input.setCustomValidity('Could not save the note. Please try again.');
+    input.reportValidity();
+    input.setCustomValidity('');
+    return;
+  }
+  input.value = '';
+  await refreshNotebook({ selectSessionId: targetSession.id });
 });
-document.getElementById('noteInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('noteBtn').click(); } });
-document.getElementById('refreshBtn').addEventListener('click', () => { refreshLog(); refreshNotebook(); });
+document.getElementById('noteInput').addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    document.getElementById('noteBtn').click();
+  }
+});
+document.getElementById('refreshBtn').addEventListener('click', () => {
+  refreshLog();
+  refreshNotebook();
+});
