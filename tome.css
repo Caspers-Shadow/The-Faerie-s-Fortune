@@ -356,3 +356,120 @@
   .tome-root[data-state="opening"] .tome-cover{opacity:0}
   .tome-root[data-state="closing"] .tome-cover{opacity:1}
 }
+
+/* v10: ONE rigid, two-sided leather cover, with the page block synchronized
+   to that cover. No independently vanishing leather or delayed naked parchment. */
+.tome-cover{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  padding:0!important;
+  display:block!important;
+  transform-style:preserve-3d!important;
+  backface-visibility:visible!important;
+  -webkit-backface-visibility:visible!important;
+  opacity:1!important;
+}
+.tome-cover::before,.tome-cover::after{content:none!important;display:none!important}
+.tome-root[data-state="opening"] .tome-cover,
+.tome-root[data-state="closing"] .tome-cover{animation:none!important;opacity:1!important}
+.tome-root[data-state="open"] .tome-cover{opacity:1!important}
+.tome-cover-front,.tome-cover-back{
+  position:absolute;
+  inset:0;
+  width:100%;height:100%;
+  border-radius:8px 17px 17px 8px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:clamp(11px,2vh,24px);
+  text-align:center;padding:30px 26px;
+  backface-visibility:hidden!important;
+  -webkit-backface-visibility:hidden!important;
+  transform-style:flat;
+}
+.tome-cover-front{
+  border:6px ridge #c49a60;border-left:18px solid #2c1510;
+  transform:rotateY(0deg) translateZ(2px);
+  background:
+    radial-gradient(circle at center,#d19f5b30,transparent 44%),
+    repeating-linear-gradient(105deg,transparent 0 15px,#00000017 16px 18px),
+    linear-gradient(130deg,#331c18,#743f2d 50%,#2b1511);
+  box-shadow:8px 12px 22px #0006,inset 0 0 0 8px #25110d,
+    inset 0 0 0 14px #bf945a56;
+}
+.tome-cover-front::before{
+  content:"";pointer-events:none;position:absolute;inset:21px;
+  border:2px solid #c0985e;border-radius:4px;
+}
+.tome-cover-back{
+  transform:rotateY(180deg) translateZ(2px);
+  border:8px double #b58e56;
+  background:
+    radial-gradient(circle at 50% 40%,#efddb28a,transparent 60%),
+    repeating-linear-gradient(90deg,transparent 0 9px,#815c3210 10px),
+    linear-gradient(105deg,#c5a46f,#dfc794 12%,#e8d5a8 85%,#c2a16d);
+  box-shadow:inset 0 0 0 9px #b08a5350;
+  color:#7b5834;
+  opacity:1;
+}
+.tome-cover-back-crest{
+  display:grid;place-items:center;width:90px;height:90px;
+  border:2px solid #a48452;border-radius:50%;color:#a3834e;font-size:52px;
+}
+.tome-cover-back-motto{
+  font:italic clamp(14px,1.3vw,20px)/1.45 'Crimson Pro',Georgia,serif;
+  max-width:20ch;
+}
+.tome-root[data-state="open"] .tome-cover-back{
+  opacity:0;
+  transition:opacity .24s ease-out;
+}
+.tome-root[data-state="opening"] .tome-cover-back{
+  opacity:1;
+}
+.tome-root[data-state="closing"] .tome-cover-back{
+  opacity:1;
+  transition:opacity .24s ease-in;
+}
+
+/* The left page reveals at the same pace and from the same spine as the cover.
+   Remove the old independent clip-path transition entirely. */
+.tome-spread{transition:none!important}
+.tome-root[data-state="closed"] .tome-spread,
+.tome-root[data-state="moving"] .tome-spread,
+.tome-root[data-state="returning"] .tome-spread{
+  animation:none!important;
+  clip-path:inset(0 0 0 50%)!important;
+}
+.tome-root[data-state="opening"] .tome-spread{
+  animation:tome-page-block-open 1.88s cubic-bezier(.28,.06,.16,.98) both!important;
+}
+.tome-root[data-state="closing"] .tome-spread{
+  animation:tome-page-block-close 1.88s cubic-bezier(.28,.06,.16,.98) both!important;
+}
+.tome-root[data-state="open"] .tome-spread{
+  animation:none!important;
+  clip-path:inset(0)!important;
+}
+@keyframes tome-page-block-open{
+  from{clip-path:inset(0 0 0 50%)}
+  to{clip-path:inset(0)}
+}
+@keyframes tome-page-block-close{
+  from{clip-path:inset(0)}
+  to{clip-path:inset(0 0 0 50%)}
+}
+@media(max-width:740px){
+  .tome-cover{left:0;width:100%}
+  .tome-cover-front{border-left-width:13px}
+  .tome-cover-back{display:none}
+  .tome-spread{clip-path:inset(0)!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .tome-root[data-state="opening"] .tome-spread,
+  .tome-root[data-state="closing"] .tome-spread{
+    animation:none!important;
+  }
+  .tome-root[data-state="opening"] .tome-spread,
+  .tome-root[data-state="open"] .tome-spread{clip-path:inset(0)!important}
+  .tome-root[data-state="closing"] .tome-spread{clip-path:inset(0 0 0 50%)!important}
+}
