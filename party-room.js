@@ -38,7 +38,9 @@ let onlineIds = new Set();
 function showBlocked(message) {
   document.getElementById('partyInfo').innerHTML = `<p class="party-hint">${escapeHtml(message)}</p><p><a href="dashboard.html" class="link-btn">Back to your parties</a></p>`;
   document.querySelectorAll('.theme-select, .dice-select, .tray-wrap, .hint, .ledger').forEach(el => el.style.display = 'none');
-  document.getElementById('hamburgerBtn').style.display = 'none';
+  // No party access: hide the physical tome without assuming an old drawer button exists.
+  const tome = document.getElementById('tomeRoot');
+  if (tome) tome.style.display = 'none';
 }
 
 async function ensureSession() {
