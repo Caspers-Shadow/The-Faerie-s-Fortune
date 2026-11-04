@@ -31,6 +31,8 @@
       modal.classList.add('open');
       overlay.classList.add('open');
     });
+    menu?.classList.add('show-contents');
+    tocToggle?.setAttribute('aria-expanded', 'true');
     window.dispatchEvent(new CustomEvent('ff:book-open'));
     window.setTimeout(() => close.focus(), 280);
   }
@@ -41,6 +43,7 @@
     modal.classList.remove('open');
     overlay.classList.remove('open');
     menu && menu.classList.remove('show-contents');
+    tocToggle?.setAttribute('aria-expanded', 'false');
     modal.setAttribute('aria-hidden', 'true');
     trigger.setAttribute('aria-expanded', 'false');
     document.body.classList.remove('book-open');
@@ -125,7 +128,7 @@
   });
 
   window.addEventListener('ff:book-turn', event => {
-    const oldPage = $('notebookPage');
+    const oldPage = event.detail?.direction < 0 && $('leftNotebookPage') ? $('leftNotebookPage') : $('notebookPage');
     if (!oldPage || !leaf) return;
     leaf.className = 'chronicle-turn-leaf active' +
       (event.detail?.direction < 0 ? ' backward' : '');
@@ -133,7 +136,9 @@
     if (copy) copy.innerHTML = oldPage.innerHTML;
     void leaf.offsetWidth;
     requestAnimationFrame(() => leaf.classList.add('flipping'));
+    const currentLeaf = leaf;
     window.setTimeout(() => {
+      if (currentLeaf !== leaf) return;
       leaf.className = 'chronicle-turn-leaf';
       if (copy) copy.replaceChildren();
     }, 730);
