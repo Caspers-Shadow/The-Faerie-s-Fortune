@@ -8,9 +8,7 @@ let party = null;
 let myRole = null;       // 'dm' | 'player'
 let currentSessionId = null;
 let sessionsList = [];   // ascending by started_at
-let pageIndex = 0;       // first physical page in the current two-page spread
-let notebookLoaded = false;
-let introCoverOnOpen = false;
+let pageIndex = 0;       // session on the right-hand leaf
 let onlineIds = new Set();
 
 (async function initPartyRoom() {
@@ -230,39 +228,52 @@ async function refreshNotebook(options = {}) {
   renderNotebookPage();
 }
 
+function makeSessionMarkup(session, index) {
+  const notes = notesBySession[session.id] || [];
+  const title = session.label || ('Session ' + (index + 1));
+  let html = '<h3 class="page-session-title">' + escapeHtml(title) + '</h3>' +
+    '<p class="page-session-date">' + escapeHtml(dateTimeLabel(session.started_at)) + '</p>';
+  if (!notes.length) html += '<p class="page-empty">No notes have yet been inscribed upon this page.</p>';
+  else html += '<ul class="page-notes">' + notes.map(note =>
+    '<li><span class="note-author">' +
+    (note.user ? escapeHtml(note.user.display_name) : 'Someone') + ':</span> ' +
+    escapeHtml(note.note_text || '') +
+    '<span class="note-time">' + escapeHtml(timeLabel(note.created_at)) + '</span></li>'
+  ).join('') + '</ul>';
+  return html;
+}
+
 function renderNotebookPage() {
-  const pageEl = document.getElementById('notebookPage');
-  const indicator = document.getElementById('pageIndicator');
+  const rightEl = document.getElementById('notebookPage');
+  const leftEl = document.getElementById('leftNotebookPage');
+  const leftForm = document.getElementById('leftNoteForm');
+  const leftLeaf = document.getElementById('chronicleLeftLeaf');
   if (!sessionsList.length) {
-    pageEl.innerHTML = '<p class="page-empty">No sessions yet. Your DM can start the first one.</p>';
-    indicator.textContent = 'No sessions';
+    rightEl.innerHTML = '<p class="page-empty">No sessions yet. Your DM can begin the first chapter.</p>';
+    if (leftEl) leftEl.innerHTML = '<div class="chronicle-frontispiece"><span class="chronicle-frontispiece-mark">✧</span><h3>Every tale begins somewhere</h3></div>';
+    if (leftForm) leftForm.hidden = true;
     window.dispatchEvent(new CustomEvent('ff:book-data', { detail: { sessions: [], index: 0 } }));
     return;
   }
   pageIndex = Math.max(0, Math.min(pageIndex, sessionsList.length - 1));
-  const session = sessionsList[pageIndex];
-  const notes = notesBySession[session.id] || [];
-  const title = session.label || ('Session ' + (pageIndex + 1));
-  const date = dateTimeLabel(session.started_at);
-
-  let html = '<h3 class="page-session-title">' + escapeHtml(title) + '</h3>' +
-    '<p class="page-session-date">' + escapeHtml(date) + '</p>';
-  if (!notes.length) {
-    html += '<p class="page-empty">No notes written in this session yet.</p>';
-  } else {
-    html += '<ul class="page-notes">' + notes.map(note =>
-      '<li><span class="note-author">' +
-      (note.user ? escapeHtml(note.user.display_name) : 'Someone') + ':</span> ' +
-      escapeHtml(note.note_text || '') +
-      '<span class="note-time">' + escapeHtml(timeLabel(note.created_at)) + '</span></li>'
-    ).join('') + '</ul>';
+  rightEl.innerHTML = makeSessionMarkup(sessionsList[pageIndex], pageIndex);
+  rightEl.scrollTop = 0;
+  if (leftEl) {
+    if (pageIndex > 0) {
+      leftEl.innerHTML = makeSessionMarkup(sessionsList[pageIndex - 1], pageIndex - 1);
+      leftEl.scrollTop = 0;
+      leftLeaf?.setAttribute('aria-label', 'Session ' + pageIndex + ' notes');
+    } else {
+      leftEl.innerHTML = '<div class="chronicle-frontispiece"><span class="chronicle-frontispiece-mark">✧</span><h3>Every tale begins somewhere</h3><p>Turn the leaves and discover the stories kept within.</p></div>';
+      leftLeaf?.setAttribute('aria-label', 'Inside cover');
+    }
   }
-  pageEl.innerHTML = html;
-  pageEl.scrollTop = 0;
-  indicator.textContent = 'Session ' + (pageIndex + 1) + ' of ' + sessionsList.length;
+  if (leftForm) leftForm.hidden = pageIndex === 0;
+  const leftFolio = document.getElementById('leftFolio');
+  if (leftFolio) leftFolio.textContent = pageIndex > 0 ? 'Folio ' + pageIndex : '';
   window.dispatchEvent(new CustomEvent('ff:book-data', { detail: {
-    index: pageIndex, sessions: sessionsList.map((s, i) =>
-      ({ id: s.id, title: s.label || ('Session ' + (i + 1)) }))
+    index: pageIndex, sessions: sessionsList.map((session, i) =>
+      ({ id: session.id, title: session.label || ('Session ' + (i + 1)) }))
   }}));
 }
 
@@ -284,33 +295,37 @@ window.addEventListener('ff:book-control', event => {
 });
 window.addEventListener('ff:book-go', event => goToNotebookPage(Number(event.detail?.index)));
 
-document.getElementById('noteBtn').addEventListener('click', async () => {
-  const input = document.getElementById('noteInput');
-  const button = document.getElementById('noteBtn');
+async function inscribeNote(inputId, buttonId, sessionIndex) {
+  const input = document.getElementById(inputId);
+  const button = document.getElementById(buttonId);
   const text = input.value.trim();
-  const targetSession = sessionsList[pageIndex];
-  if (!text || !targetSession || button.disabled) return;
+  const session = sessionsList[sessionIndex];
+  if (!text || !session || button.disabled) return;
   button.disabled = true;
-  const { error } = await supabaseClient.from('log_entries').insert({
-    party_id: partyId, session_id: targetSession.id,
-    user_id: me.id, type: 'note', note_text: text,
-  });
-  button.disabled = false;
-  if (error) {
-    console.error('Could not save the note:', error);
-    input.setCustomValidity('Could not save the note. Please try again.');
+  try {
+    const { error } = await supabaseClient.from('log_entries').insert({
+      party_id: partyId, session_id: session.id,
+      user_id: me.id, type: 'note', note_text: text,
+    });
+    if (error) throw error;
+    input.value = '';
+    await refreshNotebook({ selectSessionId: sessionsList[pageIndex]?.id });
+  } catch (error) {
+    console.error('Could not inscribe the note:', error);
+    input.setCustomValidity('Could not save this note. Please try again.');
     input.reportValidity();
     input.setCustomValidity('');
-    return;
+  } finally {
+    button.disabled = false;
   }
-  input.value = '';
-  await refreshNotebook({ selectSessionId: targetSession.id });
+}
+document.getElementById('rightNoteForm').addEventListener('submit', event => {
+  event.preventDefault();
+  inscribeNote('noteInput','noteBtn',pageIndex);
 });
-document.getElementById('noteInput').addEventListener('keydown', event => {
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    document.getElementById('noteBtn').click();
-  }
+document.getElementById('leftNoteForm').addEventListener('submit', event => {
+  event.preventDefault();
+  if (pageIndex > 0) inscribeNote('leftNoteInput','leftNoteBtn',pageIndex - 1);
 });
 document.getElementById('refreshBtn').addEventListener('click', () => {
   refreshLog();
