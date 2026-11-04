@@ -31,10 +31,8 @@
       modal.classList.add('open');
       overlay.classList.add('open');
     });
-    menu?.classList.add('show-contents');
-    tocToggle?.setAttribute('aria-expanded', 'true');
     window.dispatchEvent(new CustomEvent('ff:book-open'));
-    window.setTimeout(() => close.focus(), 280);
+    window.setTimeout(() => close.focus(), 1400);
   }
 
   function closeBook() {
@@ -42,8 +40,6 @@
     const token = ++transitionToken;
     modal.classList.remove('open');
     overlay.classList.remove('open');
-    menu && menu.classList.remove('show-contents');
-    tocToggle?.setAttribute('aria-expanded', 'false');
     modal.setAttribute('aria-hidden', 'true');
     trigger.setAttribute('aria-expanded', 'false');
     document.body.classList.remove('book-open');
@@ -60,10 +56,8 @@
   close.addEventListener('click', closeBook);
   overlay.addEventListener('click', closeBook);
   $('drawerLogout')?.addEventListener('click', () => signOutAndRedirect());
-  tocToggle?.addEventListener('click', () => {
-    const showing = menu.classList.toggle('show-contents');
-    tocToggle.setAttribute('aria-expanded', String(showing));
-  });
+  tocToggle?.addEventListener('click', () =>
+    window.dispatchEvent(new CustomEvent('ff:book-contents')));
   previous.addEventListener('click', () =>
     window.dispatchEvent(new CustomEvent('ff:book-control', {detail:{direction:-1}})));
   next.addEventListener('click', () =>
@@ -73,10 +67,7 @@
     if (!modal.classList.contains('open')) return;
     if (event.key === 'Escape') {
       event.preventDefault();
-      if (menu?.classList.contains('show-contents')) {
-        menu.classList.remove('show-contents');
-        tocToggle?.setAttribute('aria-expanded', 'false');
-      } else closeBook();
+      closeBook();
       return;
     }
     const tag = event.target?.tagName;
@@ -105,9 +96,9 @@
     const chapters = Array.isArray(data.sessions) ? data.sessions : [];
     const index = Number.isInteger(data.index) ? data.index : 0;
     const total = chapters.length;
-    previous.disabled = total === 0 || index <= 0;
-    next.disabled = total === 0 || index >= total - 1;
-    $('pageIndicator').textContent = total ? 'Session ' + (index + 1) + ' of ' + total : 'No sessions';
+    previous.disabled = index <= 0;
+    next.disabled = index >= total;
+    $('pageIndicator').textContent = index === 0 ? 'Contents · Page 1 of ' + (total + 1) : 'Session ' + index + ' · Page ' + (index + 1) + ' of ' + (total + 1);
     toc.replaceChildren();
     chapters.forEach((session, i) => {
       const button = document.createElement('button');
@@ -119,8 +110,6 @@
       number.textContent = String(i + 1).padStart(2, '0');
       button.append(label, number);
       button.addEventListener('click', () => {
-        menu?.classList.remove('show-contents');
-        tocToggle?.setAttribute('aria-expanded', 'false');
         window.dispatchEvent(new CustomEvent('ff:book-go', { detail: { index: i } }));
       });
       toc.appendChild(button);
@@ -128,7 +117,7 @@
   });
 
   window.addEventListener('ff:book-turn', event => {
-    const oldPage = event.detail?.direction < 0 && $('leftNotebookPage') ? $('leftNotebookPage') : $('notebookPage');
+    const oldPage = $('chronicleMenuPage')?.hidden ? $('notebookPage') : $('chronicleMenuPage');
     if (!oldPage || !leaf) return;
     leaf.className = 'chronicle-turn-leaf active' +
       (event.detail?.direction < 0 ? ' backward' : '');
