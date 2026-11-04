@@ -1,23 +1,23 @@
 /* Party chronicle, v30. Unique class names: no legacy drawer styles. */
 .chronicle-trigger{
-  position:fixed;z-index:32;left:clamp(-34px,-2vw,-8px);bottom:clamp(24px,5vh,58px);
+  position:fixed;z-index:32;left:auto;right:clamp(-34px,-2vw,-8px);bottom:clamp(24px,5vh,58px);
   width:clamp(180px,18vw,255px);height:clamp(245px,37vh,350px);border:0;
   border-radius:8px 16px 16px 8px;cursor:pointer;color:#eed7a5;
   background:radial-gradient(circle at 45% 40%,#854c35 0,#522919 58%,#28120e 100%);
   box-shadow:inset 0 0 0 3px #9a713e,inset 0 0 0 11px #3b1b13,
     11px 10px 0 #23100c,19px 26px 26px #0008;
-  transform:rotate(-7deg) perspective(700px) rotateY(-9deg);
+  transform:rotate(7deg) perspective(700px) rotateY(9deg);
   transform-origin:left center;transition:transform .3s ease,filter .3s ease;
   font-family:'Cinzel',serif;text-align:center;
 }
 .chronicle-trigger:hover,.chronicle-trigger:focus-visible{
-  transform:translate(6px,-8px) rotate(-4deg) perspective(700px) rotateY(-6deg);
+  transform:translate(-6px,-8px) rotate(4deg) perspective(700px) rotateY(6deg);
   filter:brightness(1.12);
 }
 .chronicle-trigger:focus-visible{outline:3px solid #eac879;outline-offset:7px}
 .chronicle-trigger::before{content:"";position:absolute;inset:17px;border:1px solid #c69a5b}
-.chronicle-trigger::after{content:"";position:absolute;left:5px;top:8px;bottom:8px;width:12px;
-  border-right:2px solid #bd8a51;background:#22100d;border-radius:3px}
+.chronicle-trigger::after{content:"";position:absolute;right:5px;left:auto;top:8px;bottom:8px;width:12px;
+  border-left:2px solid #bd8a51;background:#22100d;border-radius:3px}
 .chronicle-trigger-symbol{display:grid;place-items:center;width:74px;height:74px;
   margin:0 auto 17px;border:2px solid #c7a061;border-radius:50%;
   color:#e9c980;font-size:36px;box-shadow:0 0 0 7px #30170f}
@@ -36,7 +36,7 @@ body.book-open{overflow:hidden}
   display:flex;flex-direction:column;justify-content:center;align-items:center;gap:13px;
   padding:18px 0;perspective:1600px;min-height:0}
 .chronicle-book{position:relative;flex:1;width:100%;min-height:0;transform-style:preserve-3d;
-  transform:translateX(-30vw) rotateZ(-4deg) scale(.66);
+  transform:translateX(30vw) rotateZ(4deg) scale(.66);
   transition:transform .85s cubic-bezier(.2,.8,.19,1)}
 .chronicle-modal.open .chronicle-book{transform:translateX(0) rotateZ(0) scale(1)}
 .chronicle-spread{position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
@@ -154,7 +154,7 @@ body.book-open{overflow:hidden}
   49%{transform:rotateY(88deg);filter:brightness(.79)}
   100%{transform:rotateY(178deg);filter:brightness(.65)}}
 @media(max-width:760px){
-  .chronicle-trigger{width:130px;height:172px;left:-17px;bottom:18px}
+  .chronicle-trigger{width:130px;height:172px;left:auto;right:-17px;bottom:18px}
   .chronicle-trigger-symbol{width:47px;height:47px;font-size:26px;margin-bottom:10px}
   .chronicle-trigger-title{font-size:14px}.chronicle-trigger-subtitle{font-size:8px;margin-top:8px}
   .chronicle-stage{width:96vw;height:96dvh;padding:12px 0}
@@ -176,4 +176,80 @@ body.book-open{overflow:hidden}
 @media(prefers-reduced-motion:reduce){
   .chronicle-book,.chronicle-cover,.chronicle-overlay,.chronicle-modal{transition:none!important}
   .chronicle-turn-leaf.flipping{animation:none!important}
+}
+
+/* V31 — ancient-library binding and a separate session on each leaf. */
+.chronicle-trigger{border:4px ridge #ad8345;border-left:9px solid #2a130f;border-right:17px solid #26100e;
+ background:
+ radial-gradient(ellipse at 48% 32%,#9a765039,transparent 60%),
+ repeating-linear-gradient(105deg,transparent 0 11px,#00000013 12px 13px),
+ radial-gradient(circle at 50% 42%,#764432,#3a1a16 80%);
+ box-shadow:inset 0 0 0 5px #27120fb3,inset 0 0 0 9px #b78f5545,16px 12px 0 #261009,24px 26px 30px #000b;
+ text-shadow:0 2px 3px #180905}
+.chronicle-trigger:before{inset:20px;border:2px solid #c69a5b;border-radius:3px}
+.chronicle-trigger:after{right:3px;left:auto;width:10px;border-left:2px solid #e1b56d;background:#29130e}
+.chronicle-trigger-kicker{display:block;font:9px 'Cinzel',serif;letter-spacing:.16em;color:#d2ad71;margin-bottom:20px}
+.chronicle-trigger-corners{position:absolute;inset:31px;pointer-events:none;border:1px solid #b68e5580}
+.chronicle-trigger-symbol{background:radial-gradient(circle,#a5834e45,#22110d);box-shadow:0 0 0 6px #30170f,0 0 28px #c7a06160}
+.chronicle-trigger-title{font-weight:700;font-size:clamp(17px,1.9vw,23px);line-height:1.35}
+.chronicle-overlay{background:radial-gradient(ellipse at 50% 47%,#7857363b,transparent 55%),rgba(9,7,7,.90)}
+.chronicle-spread{border:12px ridge #50301f;border-radius:17px 19px 19px 17px;
+box-shadow:0 35px 80px #000e,0 12px 0 #25130d,inset 0 0 0 4px #c49a60,
+0 0 45px #cdad6c20}
+.chronicle-spread:before{content:"";position:absolute;inset:4px;z-index:13;pointer-events:none;
+border:2px solid #a8895c44;border-radius:5px}
+.chronicle-leaf{background:
+radial-gradient(ellipse at center,#e7d9ae 0%,transparent 79%),
+repeating-linear-gradient(0deg,transparent 0 32px,#7853310b 33px),
+linear-gradient(95deg,#c7a876,#ead6a9 9%,#f0e0bb 79%,#cbb080)}
+.chronicle-leaf-left,.chronicle-leaf-notes{padding:clamp(20px,3vw,42px);
+ display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:14px}
+.chronicle-leaf-left{padding-right:clamp(28px,4vw,53px)}
+.chronicle-leaf-notes{padding-left:clamp(28px,4vw,53px)}
+.chronicle-folio{font:12px 'Cinzel',serif;color:#98734c}
+.chronicle-frontispiece{display:flex;flex-direction:column;align-items:center;justify-content:center;
+min-height:90%;text-align:center;color:#78583b;gap:17px;padding:12px}
+.chronicle-frontispiece-mark{display:grid;place-items:center;width:110px;height:110px;
+border-radius:50%;border:2px solid #a98251;color:#a87d3f;font-size:53px;
+box-shadow:0 0 0 7px #ab86534a}
+.chronicle-frontispiece h3{font:600 22px 'Cinzel',serif;margin:8px 0 0}
+.chronicle-frontispiece p{font:italic 19px/1.6 'Crimson Pro',serif;max-width:32ch;margin:0}
+.chronicle-leaf-menu{position:absolute;inset:0 auto 0 0;width:50%;z-index:19;
+background:radial-gradient(circle at 46% 34%,#f4e5c2,#d6ba86);
+border-right:1px solid #a5865755;box-shadow:6px 0 15px #4b321122}
+.chronicle-leaf-menu:not(.show-contents){display:none}
+.chronicle-leaf-menu.show-contents{display:flex}
+.chronicle-menu-crest{font:25px 'Cinzel',serif;color:#95713d;text-align:center;padding:9px}
+.chronicle-menu-subtitle{font:italic 17px/1.35 'Crimson Pro',serif;color:#80603c;margin:0}
+.chronicle-menu-footer{margin-top:auto;color:#8a653d}
+.chronicle-toc-toggle{display:inline-flex}
+.chronicle-page-top{border-bottom:1px solid #ab87534f;padding-bottom:9px}
+.chronicle-cover{background:
+radial-gradient(circle at center,#9e6b3e33,transparent 48%),
+repeating-linear-gradient(100deg,transparent 0 11px,#0000000e 12px 14px),
+linear-gradient(110deg,#321914,#77452b 55%,#28110e);
+border:6px ridge #b88b4c;border-left:17px solid #2d120d;
+box-shadow:15px 24px 40px #000b,inset 0 0 0 11px #27120fe0,
+inset 0 0 0 17px #d2aa6940}
+.chronicle-cover::before{inset:29px;border:2px solid #c3995a;box-shadow:inset 0 0 0 8px #4a281f55}
+.chronicle-cover-kicker{font:12px 'Cinzel',serif;letter-spacing:.13em;color:#d1ab6d}
+.chronicle-cover-mark{font-size:64px;background:radial-gradient(circle,#a87f4a3d,#2a130f);
+box-shadow:0 0 0 8px #2d150f,0 0 23px #d6a75c55}
+.chronicle-cover-ornament{font:18px 'Cinzel',serif;letter-spacing:.2em;color:#dbb36f}
+.chronicle-cover-caption{font:italic 18px 'Crimson Pro',serif}
+.chronicle-cover-corner{position:absolute;color:#c29a5a;font-size:30px}
+.chronicle-cover-corner.top-left{top:24px;left:35px}.chronicle-cover-corner.top-right{top:24px;right:29px}
+.chronicle-cover-corner.bottom-left{bottom:19px;left:35px}.chronicle-cover-corner.bottom-right{bottom:19px;right:29px}
+.chronicle-session-page{position:relative;padding:18px 9px 18px 5px}
+.chronicle-session-page .page-session-title:after{content:"";display:block;width:90px;height:2px;
+margin-top:13px;background:linear-gradient(90deg,#9f7542,transparent)}
+.chronicle-toolbar{background:linear-gradient(180deg,#583721,#28170f);border:2px ridge #bd975d}
+.chronicle-compose[hidden]{display:none}
+@media(max-width:760px){
+ .chronicle-trigger{left:auto;right:-17px}
+ .chronicle-leaf-left{display:none}
+ .chronicle-leaf-menu{width:100%;z-index:28}
+ .chronicle-spread{grid-template-columns:minmax(0,1fr)}
+ .chronicle-leaf-notes{padding:17px 18px}
+ .chronicle-cover{display:none}
 }
