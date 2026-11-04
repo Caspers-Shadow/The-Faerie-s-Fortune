@@ -147,3 +147,16 @@
     top:7px!important;bottom:7px!important;height:calc(100% - 14px)!important}
   .tome-turn-face.tome-page{padding:25px!important}
 }
+
+.tome-turn-face.tome-page.tome-page--left{
+  padding-right:clamp(28px,3.6vw,56px)!important;
+}
+.tome-turn-face.tome-page.tome-page--right{
+  padding-left:clamp(28px,3.6vw,56px)!important;
+}
+.tome-turn-face.tome-page .tome-scroll{
+  overflow:hidden!important;
+}
+.tome-root .tome-page:not(.tome-probe){
+  scrollbar-width:none!important;
+}
