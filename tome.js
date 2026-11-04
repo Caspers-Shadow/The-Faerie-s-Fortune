@@ -23,6 +23,28 @@
   const mobile = () => window.matchMedia('(max-width:740px)').matches;
   const reducedMotion = () => window.matchMedia('(prefers-reduced-motion:reduce)').matches;
   const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
+  // Resolve from the browser's actual transform transition, not a guessed
+  // timeout. CSS timings can vary with browser throttling / reduced motion.
+  function motionFinished(element, property, duration) {
+    if (reducedMotion()) return Promise.resolve();
+    return new Promise(resolve => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        element.removeEventListener('transitionend', onEnd);
+        element.removeEventListener('transitioncancel', onEnd);
+        clearTimeout(timer);
+        resolve();
+      };
+      const onEnd = event => {
+        if (event.target === element && event.propertyName === property) finish();
+      };
+      const timer = window.setTimeout(finish, duration + 220);
+      element.addEventListener('transitionend', onEnd);
+      element.addEventListener('transitioncancel', onEnd);
+    });
+  }
   const el = (tag, className, text) => {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -75,6 +97,7 @@
   async function open() {
     if (state !== 'closed') return;
     const token = ++motionToken;
+    const travelDone = motionFinished(shell, 'transform', 1420);
     state = 'moving'; root.dataset.state = 'moving';
     document.body.classList.add('book-open');
     cover.disabled = true;
@@ -82,10 +105,13 @@
     shade.setAttribute('aria-hidden','false');
     spreadIndex = 0;
     render();
-    await sleep(reducedMotion()?0:1410);
+    await travelDone;
     if (token !== motionToken) return;
+    // Only after the closed book has settled do its cover and page stack
+    // begin one synchronized hinge movement.
+    const hingeDone = motionFinished(cover, 'transform', 1880);
     state = 'opening'; root.dataset.state = 'opening';
-    await sleep(reducedMotion()?0:1840);
+    await hingeDone;
     if (token !== motionToken) return;
     state = 'open'; root.dataset.state = 'open';
     spread.inert=false;
@@ -98,14 +124,20 @@
     if (state !== 'open') return;
     const token = ++motionToken;
     busy = true;
+    activeTurn++;
+    turn.className = 'tome-turn';
+    // The page stack closes with the cover, not while the entire book
+    // is already moving away.
+    const hingeDone = motionFinished(cover, 'transform', 1880);
     state = 'closing'; root.dataset.state = 'closing';
     spread.inert=true;
     spread.setAttribute('aria-hidden','true');
     closeButton.disabled=true;
-    await sleep(reducedMotion()?0:1780);
+    await hingeDone;
     if (token !== motionToken) return;
+    const travelDone = motionFinished(shell, 'transform', 1420);
     state = 'returning'; root.dataset.state = 'returning';
-    await sleep(reducedMotion()?0:1250);
+    await travelDone;
     if (token !== motionToken) return;
     hideForRest();
     busy = false;
