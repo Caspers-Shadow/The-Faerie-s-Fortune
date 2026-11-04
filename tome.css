@@ -214,3 +214,6 @@
     font:24px 'Cinzel',serif;color:#967149;opacity:.65;pointer-events:none
  }
 }
+
+/* The decorative turning sheet must never intercept notes, links, or page taps. */
+.tome-root .tome-turn,.tome-root .tome-turn *{pointer-events:none!important}
