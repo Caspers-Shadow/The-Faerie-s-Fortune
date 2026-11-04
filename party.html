@@ -8,79 +8,46 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=30">
-<link rel="stylesheet" href="chronicle.css?v=33">
+<link rel="stylesheet" href="tome.css?v=1">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Cpolygon points=%2750,6 90,30 90,70 50,94 10,70 10,30%27 fill=%27%23E8B93E%27 stroke=%27%238C6B32%27 stroke-width=%274%27/%3E%3Ctext x=%2750%27 y=%2763%27 font-family=%27Georgia%27 font-weight=%27900%27 font-size=%2740%27 text-anchor=%27middle%27 fill=%27%231C1712%27%3E20%3C/text%3E%3C/svg%3E">
 </head>
 <body>
 
 
-<div class="chronicle-overlay" id="drawerOverlay" hidden></div>
-<aside class="chronicle-modal" id="drawer" role="dialog" aria-modal="true" aria-labelledby="chronicleTitle" aria-hidden="true">
-  <div class="chronicle-stage">
-    <div class="chronicle-book" id="chronicleBook">
-      <div class="chronicle-spread">
-        <section class="chronicle-leaf chronicle-inside-cover" aria-label="Inside cover and chronicle navigation">
-          <p class="chronicle-eyebrow">The Faerie's Fortune</p>
-          <div class="chronicle-inside-ornament" aria-hidden="true">
-            <span class="chronicle-inside-ring"><span>✦</span></span>
-            <span class="chronicle-inside-motto">Verba manent · Memoria vivit</span>
-          </div>
-          <h2 class="chronicle-inside-title">The Keeper's<br>Chronicle</h2>
-          <p class="chronicle-inside-quote">Here are kept the whispers, deeds and legends of those who walked beyond the ordinary world.</p>
-          <div class="chronicle-inside-bottom">
-            <button type="button" class="chronicle-contents-link" id="chronicleTocToggle">✧ Return to Contents</button>
-            <nav class="chronicle-links" aria-label="Party navigation">
-              <a href="dashboard.html">← Your Parties</a>
-              <button type="button" id="drawerLogout">Log Out</button>
-            </nav>
-          </div>
-        </section>
-        <section class="chronicle-leaf chronicle-leaf-notes" aria-label="Current chronicle page">
-          <div class="chronicle-page-top">
-            <span class="chronicle-eyebrow" id="chroniclePageEyebrow">The Chronicle · Contents</span>
-            <button class="chronicle-close" id="drawerClose" type="button" aria-label="Close the book">×</button>
-          </div>
-          <div class="chronicle-contents-page" id="chronicleMenuPage">
-            <div class="chronicle-contents-crest" aria-hidden="true">☾ &nbsp; ✦ &nbsp; ☽</div>
-            <h2 id="chronicleTitle">Table of Contents</h2>
-            <p class="chronicle-contents-intro">An index of every adventure and all that the party has dared to remember.</p>
-            <div class="chronicle-rule"></div>
-            <div class="chronicle-toc" id="bookSessionList" aria-label="Choose a session"></div>
-            <p class="chronicle-contents-footer">Turn the page, and let the tale begin.</p>
-          </div>
-          <div class="chronicle-session-page" id="notebookPage" aria-live="polite" hidden>
-            <p class="page-empty">Loading the archive…</p>
-          </div>
-          <form class="chronicle-compose" id="rightNoteForm" hidden>
-            <label class="sr-only" for="noteInput">Add a note to the current session</label>
-            <input type="text" id="noteInput" placeholder="Inscribe a memory…" maxlength="200">
-            <button type="submit" id="noteBtn">Inscribe</button>
-          </form>
-          <p class="chronicle-readonly" id="chronicleReadOnlyNote" hidden>✦ This chapter is sealed. Notes can only be added to the newest session.</p>
-        </section>
-        <div class="chronicle-turn-leaf" id="chronicleTurnLeaf" aria-hidden="true">
-          <div class="chronicle-turn-copy"></div>
-        </div>
-      </div>
-      <div class="chronicle-cover" aria-hidden="true">
-        <span class="chronicle-cover-corner top-left">✧</span>
-        <span class="chronicle-cover-corner top-right">✧</span>
-        <span class="chronicle-cover-corner bottom-left">✧</span>
-        <span class="chronicle-cover-corner bottom-right">✧</span>
-        <span class="chronicle-cover-kicker">The Faerie's Fortune</span>
-        <span class="chronicle-cover-mark">✦</span>
-        <strong>The Party<br>Chronicle</strong>
-        <span class="chronicle-cover-ornament">❖ &nbsp; ❖ &nbsp; ❖</span>
-        <span class="chronicle-cover-caption">A record of forgotten realms</span>
-      </div>
+
+<div class="tome-root" id="tomeRoot" data-state="closed">
+  <div class="tome-shade" id="tomeShade" aria-hidden="true"></div>
+  <div class="tome-shell" id="tomeShell">
+    <div class="tome-spread" id="tomeSpread" role="dialog" aria-modal="true" aria-label="The party chronicle" aria-hidden="true">
+      <section class="tome-page tome-page--left" id="tomeLeftPage" aria-label="Table of contents">
+        <p class="tome-empty">Preparing the chronicle…</p>
+      </section>
+      <section class="tome-page tome-page--right" id="tomeRightPage" aria-label="First session">
+        <p class="tome-empty">Preparing the chronicle…</p>
+      </section>
     </div>
-    <nav class="chronicle-toolbar" aria-label="Book page navigation">
-      <button id="pagePrev" type="button" disabled>‹ Previous page</button>
-      <span id="pageIndicator" class="chronicle-page-count" aria-live="polite">Contents</span>
-      <button id="pageNext" type="button" disabled>Next page ›</button>
-    </nav>
+    <div class="tome-turn" id="tomeTurning" aria-hidden="true">
+      <div class="tome-turn-face tome-turn-face--front" id="tomeTurnFront"></div>
+      <div class="tome-turn-face tome-turn-face--back" id="tomeTurnBack"></div>
+    </div>
+    <button type="button" class="tome-cover" id="tomeCover" aria-label="Open the party chronicle" aria-controls="tomeSpread" aria-expanded="false">
+      <span class="tome-cover-corner tome-cover-corner--tl" aria-hidden="true">✧</span>
+      <span class="tome-cover-corner tome-cover-corner--tr" aria-hidden="true">✧</span>
+      <span class="tome-cover-corner tome-cover-corner--bl" aria-hidden="true">✧</span>
+      <span class="tome-cover-corner tome-cover-corner--br" aria-hidden="true">✧</span>
+      <span class="tome-cover-kicker">The Faerie's Fortune</span>
+      <span class="tome-cover-sigil" aria-hidden="true">✦</span>
+      <span class="tome-cover-title">The Party<br>Chronicle</span>
+      <span class="tome-cover-subtitle">Where every adventure is remembered</span>
+    </button>
+    <button class="tome-close" id="tomeClose" aria-label="Close the chronicle" type="button" disabled>×</button>
   </div>
-</aside>
+  <nav class="tome-toolbar" id="tomeToolbar" aria-label="Turn chronicle pages">
+    <button type="button" id="tomePrev" disabled>‹ Previous</button>
+    <span class="tome-progress" id="tomeProgress" aria-live="polite">Contents · Session 1</span>
+    <button type="button" id="tomeNext" disabled>Next ›</button>
+  </nav>
+</div>
 
 <div class="game-shell">
   <header class="game-bar">
@@ -131,13 +98,7 @@
           <ul id="log"><li class="empty">Loading…</li></ul>
         </section>
       </div>
-      <button class="chronicle-trigger" id="hamburgerBtn" type="button" aria-expanded="false" aria-controls="drawer" aria-label="Open the party chronicle">
-  <span class="chronicle-trigger-corners" aria-hidden="true"></span>
-  <span class="chronicle-trigger-kicker">The Faerie's Fortune</span>
-  <span class="chronicle-trigger-symbol" aria-hidden="true">✦</span>
-  <span class="chronicle-trigger-title">The<br>Chronicle</span>
-  <span class="chronicle-trigger-subtitle">✧ &nbsp; Open the tome &nbsp; ✧</span>
-</button>
+      
     </main>
   </div>
 </div>
@@ -150,9 +111,9 @@
 <!-- 3D dice -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="dice.js?v=5"></script>
-<script src="book.js?v=33"></script>
+<script src="tome.js?v=1"></script>
 
 <!-- This party's roster, sessions, and shared log -->
-<script src="party-room.js?v=32"></script>
+<script src="party-room.js?v=34"></script>
 </body>
 </html>
