@@ -1,0 +1,110 @@
+/* The Faerie's Fortune · Tome — independent book implementation */
+.tome-root{position:fixed;inset:0;z-index:85;pointer-events:none;isolation:isolate;--tome-rest-x:300px;--tome-rest-y:180px;--tome-rest-scale:.35}
+.tome-root *{box-sizing:border-box}
+.tome-shade{position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(105,69,39,.28),rgba(5,5,7,.92) 76%);backdrop-filter:blur(5px);opacity:0;transition:opacity .65s ease;pointer-events:none}
+.tome-root:not([data-state="closed"]) .tome-shade{opacity:1;pointer-events:auto}
+.tome-shell{position:fixed;left:50%;top:50%;width:min(90vw,1160px);height:min(76vh,740px);min-height:300px;transform-origin:center;transform:translate(-50%,-50%) translate(var(--tome-rest-x),var(--tome-rest-y)) scale(var(--tome-rest-scale)) rotate(4deg);transition:transform 1.22s cubic-bezier(.2,.72,.17,1);perspective:2200px;transform-style:preserve-3d;pointer-events:none}
+.tome-root[data-state="opening"] .tome-shell,.tome-root[data-state="open"] .tome-shell,.tome-root[data-state="closing"] .tome-shell{transform:translate(-50%,-50%) translate(0,0) scale(1) rotate(0)}
+.tome-spread{position:absolute;inset:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:12px solid #3b2017;border-radius:9px 19px 19px 9px;background:#e6d1a0;box-shadow:0 30px 70px #000b,0 9px 0 #2a140c,inset 0 0 0 3px #bc945a;clip-path:inset(0 0 0 50%);transition:clip-path .85s ease;transform:translateZ(0);overflow:hidden}
+.tome-root[data-state="opening"] .tome-spread,.tome-root[data-state="open"] .tome-spread,.tome-root[data-state="closing"] .tome-spread{clip-path:inset(0)}
+.tome-spread:after{content:"";pointer-events:none;position:absolute;inset:0 auto 0 50%;transform:translateX(-50%);width:44px;z-index:9;background:linear-gradient(90deg,transparent,#3b291a44 42%,#fff0c84d 54%,transparent)}
+.tome-page{min-width:0;min-height:0;position:relative;display:flex;flex-direction:column;overflow:hidden;color:#53351e;background:
+ radial-gradient(ellipse at 50% 44%,#f8e9c792,transparent 75%),
+ repeating-linear-gradient(0deg,transparent 0 38px,#69421e09 39px),
+ linear-gradient(90deg,#d3b783 0%,#f0dcb1 10%,#f1e2bd 88%,#ccaa75 100%);padding:clamp(22px,3.2vw,48px);pointer-events:auto}
+.tome-page--left{padding-right:clamp(33px,4vw,61px);box-shadow:inset -22px 0 22px #553b171c}
+.tome-page--right{padding-left:clamp(33px,4vw,61px);box-shadow:inset 22px 0 22px #553b171c}
+.tome-page-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ab855554;gap:12px;padding-bottom:10px;margin-bottom:17px;min-height:37px}
+.tome-overline{font:10px/1.4 'Cinzel',serif;color:#8b643c;text-transform:uppercase;letter-spacing:.14em}
+.tome-folio{font:11px 'JetBrains Mono',monospace;color:#967145;white-space:nowrap}
+.tome-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-color:#a68256 transparent;padding:8px 6px 10px 0}
+.tome-heading{margin:6px 0 13px;font:600 clamp(21px,2.35vw,31px)/1.24 'Cinzel',serif;color:#56351c;overflow-wrap:anywhere}
+.tome-heading:after{content:"";display:block;width:96px;height:2px;background:linear-gradient(90deg,#a67842,transparent);margin-top:16px}
+.tome-date{font:11px/1.6 'JetBrains Mono',monospace;letter-spacing:.02em;color:#886541;margin:0 0 24px}
+.tome-note-list{list-style:none;margin:0;padding:0}
+.tome-note-list li{border-bottom:1px solid #8e68363b;padding:10px 0 14px;font:17px/1.58 'Crimson Pro',Georgia,serif;color:#432c1b;white-space:pre-wrap;overflow-wrap:anywhere}
+.tome-note-author{font-weight:700}
+.tome-note-time{display:block;font:10px/1.5 'JetBrains Mono',monospace;color:#92754f;margin-top:4px}
+.tome-empty{font:italic 18px/1.5 'Crimson Pro',Georgia,serif;color:#836345;margin:14px 0}
+.tome-note-form{display:flex;align-items:center;gap:7px;border-top:1px solid #a88a5e67;padding-top:13px;margin:0;flex-shrink:0}
+.tome-note-form input{flex:1;min-width:0;width:auto!important;border:1px solid #a98958!important;border-radius:3px!important;background:#fdf2d6a8!important;color:#3f2d1c!important;padding:11px!important;font:16px 'Crimson Pro',Georgia,serif!important}
+.tome-note-form button{flex:none;border:1px solid #9b7143!important;background:#5e3b24!important;border-radius:3px!important;color:#f4e4b8!important;cursor:pointer;padding:11px 12px!important;font:600 12px 'Cinzel',serif!important}
+.tome-note-form button:disabled{opacity:.45}
+.tome-sealed{flex:none;text-align:center;border-top:1px solid #a88a5e67;padding:12px 5px 3px;font:italic 14px/1.4 'Crimson Pro',serif;color:#896847}
+.tome-contents-crest{text-align:center;margin:4px 0 14px;font-size:31px;letter-spacing:.19em;color:#a27a45}
+.tome-contents-lead{text-align:center;margin:0 0 22px;color:#82623d;font:italic 19px/1.6 'Crimson Pro',Georgia,serif}
+.tome-contents-title{text-align:center;font:600 clamp(23px,2.4vw,34px) 'Cinzel',serif;color:#5b3b24;margin:0 0 8px}
+.tome-contents-title:after{content:"";display:block;width:45%;height:1px;margin:18px auto;background:linear-gradient(90deg,transparent,#ab8050,transparent)}
+.tome-index{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.tome-index button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;border:1px solid #a17a465c;border-radius:3px;text-align:left;background:#d1b17b2b;color:#5b3820;cursor:pointer;font:600 16px 'Crimson Pro',Georgia,serif}
+.tome-index button:hover{background:#b88d534c;border-color:#8a6238}
+.tome-index small{font:10px 'JetBrains Mono',monospace;color:#9e7d55}
+.tome-toc-tools{margin-top:18px;padding-top:15px;border-top:1px solid #a784534d;display:flex;gap:20px;flex-wrap:wrap}
+.tome-toc-tools a,.tome-toc-tools button{font:600 13px 'Crimson Pro',Georgia,serif;color:#724b2b;border:none;background:none;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px}
+.tome-blank-content{height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:20px;color:#ac8957}
+.tome-blank-sigil{width:110px;height:110px;display:grid;place-items:center;border:2px solid #b39361;border-radius:50%;font-size:54px;box-shadow:0 0 0 7px #ac89571c}
+.tome-blank-content p{font:italic 17px 'Crimson Pro',Georgia,serif;max-width:30ch}
+.tome-cover{position:absolute;top:0;left:50%;width:50%;height:100%;z-index:15;border:6px ridge #c49a60;border-left:18px solid #2c1510;border-radius:8px 17px 17px 8px;transform-origin:left center;transform:rotateY(0) translateZ(9px);transform-style:preserve-3d;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:transform 1.7s cubic-bezier(.18,.66,.16,1);pointer-events:auto;cursor:pointer;
+ background:
+ radial-gradient(circle at center,#d19f5b30,transparent 44%),
+ repeating-linear-gradient(105deg,transparent 0 15px,#00000017 16px 18px),
+ linear-gradient(130deg,#331c18,#743f2d 50%,#2b1511);
+ box-shadow:15px 20px 37px #000b,inset 0 0 0 8px #25110d,inset 0 0 0 14px #bf945a56;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;text-align:center;color:#eedbb5;font-family:'Cinzel',serif;padding:30px}
+.tome-cover:before{content:"";position:absolute;inset:22px;border:2px solid #c0985e;pointer-events:none}
+.tome-cover-sigil{display:grid;place-items:center;width:115px;height:115px;flex:none;border:3px solid #d4ad6d;border-radius:50%;box-shadow:0 0 0 8px #2b150f,0 0 25px #cda35c66;font-size:63px;color:#eac98e}
+.tome-cover-kicker{letter-spacing:.2em;font-size:clamp(12px,1.15vw,17px);text-transform:uppercase}
+.tome-cover-title{font:600 clamp(23px,2.9vw,40px)/1.25 'Cinzel',serif;color:#f0d6a0}
+.tome-cover-subtitle{font:italic clamp(13px,1.25vw,17px) 'Crimson Pro',Georgia,serif;letter-spacing:.03em;color:#d5b980}
+.tome-cover-corner{position:absolute;z-index:1;font-size:24px;color:#d2a969}
+.tome-cover-corner--tl{top:22px;left:27px}.tome-cover-corner--tr{top:22px;right:23px}.tome-cover-corner--bl{bottom:19px;left:27px}.tome-cover-corner--br{bottom:19px;right:23px}
+.tome-root[data-state="opening"] .tome-cover,
+.tome-root[data-state="open"] .tome-cover{transform:rotateY(-180deg) translateZ(9px);pointer-events:none}
+.tome-root[data-state="closing"] .tome-cover{transform:rotateY(0deg) translateZ(9px);pointer-events:none}
+.tome-root[data-state="moving"] .tome-cover,
+.tome-root[data-state="returning"] .tome-cover{pointer-events:none}
+.tome-root[data-state="closed"] .tome-spread,
+.tome-root[data-state="moving"] .tome-spread,
+.tome-root[data-state="returning"] .tome-spread{clip-path:inset(0 0 0 50%)}
+.tome-root[data-state="closed"] .tome-cover{pointer-events:auto}
+.tome-root[data-state="open"] .tome-page{pointer-events:auto}
+.tome-root:not([data-state="open"]) .tome-page{pointer-events:none}
+.tome-toolbar{position:fixed;top:calc(50% + min(38vh,370px) + 20px);left:50%;transform:translateX(-50%);z-index:20;display:flex;justify-content:space-between;align-items:center;gap:20px;width:min(80vw,590px);padding:9px 12px;background:linear-gradient(#56351f,#281711);color:#f3dcac;border:1px solid #b58b54;border-radius:6px;box-shadow:0 8px 22px #0009;opacity:0;pointer-events:none;transition:opacity .35s ease}
+.tome-root[data-state="open"] .tome-toolbar{opacity:1;pointer-events:auto}
+.tome-toolbar button,.tome-close{background:#684127;color:#f2dbb1;border:1px solid #b6915c;border-radius:3px;cursor:pointer;font:600 12px 'Cinzel',serif;padding:10px 13px}
+.tome-toolbar button:hover:not(:disabled),.tome-close:hover{background:#8b5a35}
+.tome-toolbar button:disabled{opacity:.34;cursor:not-allowed}
+.tome-progress{font:11px/1.3 'JetBrains Mono',monospace;text-align:center}
+.tome-close{position:absolute;top:-13px;right:-18px;z-index:25;border-radius:50%;width:43px;height:43px;font-size:22px;padding:0;opacity:0;pointer-events:none}
+.tome-root[data-state="open"] .tome-close{opacity:1;pointer-events:auto}
+.tome-turn{position:absolute;top:12px;bottom:12px;left:50%;width:calc(50% - 12px);z-index:12;display:none;transform-origin:left center;transform-style:preserve-3d;pointer-events:none}
+.tome-turn.is-visible{display:block}
+.tome-turn.is-prev{left:12px;transform-origin:right center}
+.tome-turn.is-next.is-flipping{animation:tome-flip-next .9s cubic-bezier(.3,.1,.17,.94) forwards}
+.tome-turn.is-prev.is-flipping{animation:tome-flip-prev .9s cubic-bezier(.3,.1,.17,.94) forwards}
+.tome-turn-face{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:1px solid #ba9564;background:linear-gradient(95deg,#c6a877,#f1dfb5 13%,#e8d2a6 95%);box-shadow:0 12px 32px #3d251633;padding:26px 31px;box-sizing:border-box}
+.tome-turn-face--back{transform:rotateY(180deg)}
+.tome-turn-title{font:600 clamp(17px,2.1vw,26px) 'Cinzel',serif;color:#634323;margin:0 0 16px}
+.tome-turn-small{font:italic 16px 'Crimson Pro',Georgia,serif;color:#715236}
+@keyframes tome-flip-next{0%{transform:rotateY(0)}48%{transform:rotateY(-89deg)}100%{transform:rotateY(-180deg)}}
+@keyframes tome-flip-prev{0%{transform:rotateY(0)}48%{transform:rotateY(89deg)}100%{transform:rotateY(180deg)}}
+.tome-root button:focus-visible,.tome-root a:focus-visible,.tome-root input:focus-visible{outline:2px solid #d7ad69;outline-offset:3px}
+.tome-hidden{display:none!important}
+@media(max-width:740px){
+ .tome-shell{width:min(94vw,520px);height:min(77dvh,720px);min-height:350px}
+ .tome-spread{grid-template-columns:1fr;border-width:7px}
+ .tome-spread:after,.tome-page--left{display:none}
+ .tome-page--right{grid-column:1/-1;padding:25px}
+ .tome-cover{left:0;width:100%;border-left-width:13px}
+ .tome-cover-title{font-size:27px}
+ .tome-cover-sigil{width:82px;height:82px;font-size:43px}
+ .tome-toolbar{width:92vw;top:auto;bottom:3dvh;gap:5px}
+ .tome-toolbar button{padding:10px 8px;font-size:10px}
+ .tome-progress{font-size:10px}
+ .tome-close{top:-10px;right:-8px}
+ .tome-turn,.tome-turn.is-prev{left:7px;top:7px;bottom:7px;width:calc(100% - 14px);transform-origin:left center}
+ .tome-turn.is-prev.is-flipping{animation:tome-flip-next .9s cubic-bezier(.3,.1,.17,.94) forwards}
+}
+@media(prefers-reduced-motion:reduce){
+ .tome-shell,.tome-shade,.tome-cover,.tome-toolbar{transition:none}
+ .tome-turn.is-flipping{animation-duration:.001s!important}
+}
