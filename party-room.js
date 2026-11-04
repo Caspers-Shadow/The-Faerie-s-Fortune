@@ -8,7 +8,6 @@ let party = null;
 let myRole = null;       // 'dm' | 'player'
 let currentSessionId = null;
 let sessionsList = [];   // ascending by started_at
-let pageIndex = 0;       // page 0 is contents, 1..N are sessions
 let onlineIds = new Set();
 
 (async function initPartyRoom() {
@@ -70,7 +69,7 @@ function setupLogSync() {
   let refreshTimer = null;
   const queueRefresh = () => {
     clearTimeout(refreshTimer);
-    refreshTimer = setTimeout(() => { refreshLog(); }, 120);
+    refreshTimer = setTimeout(() => { refreshLog(); refreshNotebook(); }, 120);
   };
 
   supabaseClient
@@ -134,7 +133,6 @@ async function startNewSession() {
   const { data: created } = await supabaseClient.from('sessions').insert({ party_id: partyId, label: null }).select().single();
   if (!created) return;
   currentSessionId = created.id;
-  notebookLoaded = false;
   await supabaseClient.from('log_entries').insert({ party_id: partyId, session_id: currentSessionId, user_id: me.id, type: 'session' });
   await refreshLog();
   await refreshNotebook({ selectLatest: true });
@@ -191,126 +189,78 @@ async function recordRoll(cfg, display, isCrit, isFail) {
   await refreshLog();
 }
 
-// The book has a contents page (0), then exactly one session per page (1..N).
-const drawer = document.getElementById('drawer');
-let notesBySession = {};
-let chronicleBusy = false;
-let notebookRequest = 0;
+// Shared sessions and notes for the new physical tome. The new tome owns
+// turning, page selection and rendering; this module owns database access.
+let tomeRequestNumber = 0;
 
 async function refreshNotebook(options = {}) {
   if (!partyId || !me) return;
-  const request = ++notebookRequest;
-  const previousSession = pageIndex > 0 ? sessionsList[pageIndex - 1]?.id : null;
-  const selectedId = options.selectSessionId || (options.selectLatest ? currentSessionId : previousSession);
-  const [{ data: sessions, error: sessionsError }, { data: notes, error: notesError }] = await Promise.all([
-    supabaseClient.from('sessions').select('id, label, started_at')
-      .eq('party_id', partyId).order('started_at', { ascending: true }),
-    supabaseClient.from('log_entries').select('session_id, note_text, created_at, user:profiles(display_name)')
-      .eq('party_id', partyId).eq('type', 'note').order('created_at', { ascending: true }),
-  ]);
-  if (request !== notebookRequest) return;
-  if (sessionsError || notesError) {
-    document.getElementById('notebookPage').textContent = 'Could not load the chronicle. Please refresh.';
-    console.error('Chronicle loading failed', sessionsError, notesError);
+  const request = ++tomeRequestNumber;
+  const [{ data: sessions, error: sessionError }, { data: notes, error: noteError }] =
+    await Promise.all([
+      supabaseClient.from('sessions').select('id, label, started_at')
+        .eq('party_id',partyId).order('started_at',{ascending:true}),
+      supabaseClient.from('log_entries')
+        .select('session_id, note_text, created_at, user:profiles(display_name)')
+        .eq('party_id',partyId).eq('type','note')
+        .order('created_at',{ascending:true}),
+    ]);
+  if (request !== tomeRequestNumber) return;
+  if (sessionError || noteError) {
+    console.error('Could not load the tome',sessionError,noteError);
+    window.dispatchEvent(new CustomEvent('ff:tome:error',{
+      detail:{message:'The Chronicle could not be loaded. Try Refresh.'}
+    }));
     return;
   }
   sessionsList = sessions || [];
-  notesBySession = {};
-  (notes || []).forEach(note => (notesBySession[note.session_id] ||= []).push(note));
-  if (options.selectContents) pageIndex = 0;
-  else if (selectedId) {
-    const target = sessionsList.findIndex(s => s.id === selectedId);
-    pageIndex = target < 0 ? Math.min(pageIndex, sessionsList.length) : target + 1;
-  } else pageIndex = Math.min(pageIndex, sessionsList.length);
-  renderNotebookPage();
-}
-
-function renderNotebookPage() {
-  const content = document.getElementById('notebookPage');
-  const contents = document.getElementById('chronicleMenuPage');
-  const form = document.getElementById('rightNoteForm');
-  const sealed = document.getElementById('chronicleReadOnlyNote');
-  const eyebrow = document.getElementById('chroniclePageEyebrow');
-  const isContents = pageIndex === 0;
-  const latest = sessionsList.length - 1;
-  contents.hidden = !isContents;
-  content.hidden = isContents;
-  const writable = !isContents && pageIndex - 1 === latest;
-  form.hidden = !writable;
-  sealed.hidden = isContents || writable;
-  eyebrow.textContent = isContents ? 'The Chronicle · Contents' : 'The Chronicle · Chapter ' + pageIndex;
-  if (!isContents) {
-    const index = pageIndex - 1, session = sessionsList[index], notes = notesBySession[session.id] || [];
-    const title = session.label || ('Session ' + (index + 1));
-    content.innerHTML = '<h3 class="page-session-title">' + escapeHtml(title) + '</h3>' +
-      '<p class="page-session-date">' + escapeHtml(dateTimeLabel(session.started_at)) + '</p>' +
-      (!notes.length ? '<p class="page-empty">No notes have been inscribed on this page.</p>' :
-        '<ul class="page-notes">' + notes.map(note =>
-          '<li><span class="note-author">' + (note.user ? escapeHtml(note.user.display_name) : 'Someone') +
-          ':</span> ' + escapeHtml(note.note_text || '') +
-          '<span class="note-time">' + escapeHtml(timeLabel(note.created_at)) + '</span></li>').join('') + '</ul>');
-    content.scrollTop = 0;
+  const notesBySession = {};
+  for (const entry of notes || []) {
+    (notesBySession[entry.session_id] ||= []).push(entry);
   }
-  window.dispatchEvent(new CustomEvent('ff:book-data', { detail: {
-    index: pageIndex,
-    sessions: sessionsList.map((s, i) => ({ id: s.id, title: s.label || ('Session ' + (i + 1)) })),
+  window.dispatchEvent(new CustomEvent('ff:tome:content',{detail:{
+    sessions:sessionsList,
+    notesBySession,
+    selectContents:!!options.selectContents,
+    selectSessionId:options.selectSessionId ||
+      (options.selectLatest ? currentSessionId : null),
   }}));
 }
 
-function goToNotebookPage(index) {
-  if (chronicleBusy || !Number.isInteger(index) || index < 0 || index > sessionsList.length || pageIndex === index) return;
-  const direction = index > pageIndex ? 1 : -1;
-  chronicleBusy = true;
-  window.dispatchEvent(new CustomEvent('ff:book-turn', { detail: { direction } }));
-  pageIndex = index;
-  renderNotebookPage();
-  window.setTimeout(() => { chronicleBusy = false; }, 720);
-}
-window.addEventListener('ff:book-control', event => {
-  const direction = Number(event.detail?.direction);
-  if (direction === -1 || direction === 1) goToNotebookPage(pageIndex + direction);
-});
-window.addEventListener('ff:book-go', event => goToNotebookPage(Number(event.detail?.index) + 1));
-window.addEventListener('ff:book-contents', () => goToNotebookPage(0));
-window.addEventListener('ff:book-open', () => {
-  pageIndex = 0;
-  renderNotebookPage();
-});
-
-document.getElementById('rightNoteForm').addEventListener('submit', async event => {
-  event.preventDefault();
-  const input = document.getElementById('noteInput');
-  const button = document.getElementById('noteBtn');
-  const text = input.value.trim();
-  if (!text || button.disabled || pageIndex < 1) return;
-  const session = sessionsList[pageIndex - 1];
-  if (!session || session.id !== sessionsList[sessionsList.length - 1]?.id) return;
-  button.disabled = true;
+window.addEventListener('ff:tome:save-note',async event => {
+  const {sessionId,text,resolve} = event.detail || {};
+  if (typeof resolve !== 'function') return;
+  if (!sessionId || typeof text !== 'string' || !text.trim() || text.trim().length > 200) {
+    resolve({ok:false,error:'Please enter a note of at most 200 characters.'});
+    return;
+  }
   try {
-    // Re-check before saving, in case a DM has started a newer session elsewhere.
-    const { data: newest, error: newestError } = await supabaseClient.from('sessions')
-      .select('id').eq('party_id', partyId).order('started_at', { ascending: false }).limit(1).maybeSingle();
-    if (newestError || newest?.id !== session.id) {
+    // In addition to the tome hiding older forms, check the newest session
+    // again immediately before inserting. The DB should also enforce the
+    // restriction for clients that do not use this page.
+    const {data:newest,error:lookupError} = await supabaseClient.from('sessions')
+      .select('id').eq('party_id',partyId)
+      .order('started_at',{ascending:false}).limit(1).maybeSingle();
+    if (lookupError) throw lookupError;
+    if (!newest || newest.id !== sessionId) {
       await refreshNotebook();
-      throw new Error('This chapter has been sealed because a newer session has started.');
+      resolve({ok:false,error:'That session has been sealed. Only the latest session accepts notes.'});
+      return;
     }
-    const { error } = await supabaseClient.from('log_entries').insert({
-      party_id: partyId, session_id: session.id,
-      user_id: me.id, type: 'note', note_text: text,
+    const {error:insertError} = await supabaseClient.from('log_entries').insert({
+      party_id:partyId,session_id:sessionId,user_id:me.id,
+      type:'note',note_text:text.trim(),
     });
-    if (error) throw error;
-    input.value = '';
-    await refreshNotebook({ selectSessionId: session.id });
+    if (insertError) throw insertError;
+    await refreshNotebook();
+    resolve({ok:true});
   } catch (error) {
-    console.error('Could not save chronicle note:', error);
-    input.setCustomValidity(error.message || 'Could not save note.');
-    input.reportValidity();
-    input.setCustomValidity('');
-  } finally {
-    button.disabled = false;
+    console.error('Could not save tome note',error);
+    resolve({ok:false,error:'The note could not be saved. Please try again.'});
   }
 });
-document.getElementById('refreshBtn').addEventListener('click', () => {
+
+document.getElementById('refreshBtn').addEventListener('click',() => {
   refreshLog();
   refreshNotebook();
 });
