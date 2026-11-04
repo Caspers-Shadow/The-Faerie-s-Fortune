@@ -149,7 +149,8 @@
     return {probe,scroll,list};
   }
   function hasOverflow(scroll) {
-    return scroll.scrollHeight > scroll.clientHeight + 2;
+    const available = scroll.clientHeight || Math.max(160,(shell.clientHeight || 650)-250);
+    return scroll.scrollHeight > available + 2;
   }
 
   function splitOversizeNote(probe, note, remaining, isContinued) {
