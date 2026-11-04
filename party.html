@@ -7,41 +7,61 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=19">
+<link rel="stylesheet" href="styles.css?v=30">
+<link rel="stylesheet" href="chronicle.css?v=30">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Cpolygon points=%2750,6 90,30 90,70 50,94 10,70 10,30%27 fill=%27%23E8B93E%27 stroke=%27%238C6B32%27 stroke-width=%274%27/%3E%3Ctext x=%2750%27 y=%2763%27 font-family=%27Georgia%27 font-weight=%27900%27 font-size=%2740%27 text-anchor=%27middle%27 fill=%27%231C1712%27%3E20%3C/text%3E%3C/svg%3E">
 </head>
 <body>
 
-<div class="drawer-overlay" id="drawerOverlay" hidden></div>
-<aside class="drawer table-notebook" id="drawer" aria-hidden="true">
-  <div class="book-stage">
-    <div class="book-volume">
-      <canvas id="bookFullscreenScene" class="book-fullscreen-canvas" aria-label="Open three-dimensional party chronicle"></canvas>
-      <div class="book-page-block">
-        <div class="drawer-head">
-          <span class="drawer-title">The Chronicle of the Party</span>
-          <button class="drawer-close" id="drawerClose" aria-label="Close session book">✕</button>
-        </div>
-        <nav class="drawer-nav">
-          <a href="dashboard.html">← Your Parties</a>
-          <button id="drawerLogout">Log Out</button>
-        </nav>
-        <div class="drawer-divider"></div>
-
-        <div class="notebook">
-          <div class="party-form">
-            <input type="text" id="noteInput" placeholder="Write a note…" maxlength="200">
-            <button class="die-btn" id="noteBtn">Add</button>
+<div class="chronicle-overlay" id="drawerOverlay" hidden></div>
+<aside class="chronicle-modal" id="drawer" role="dialog" aria-modal="true" aria-labelledby="chronicleTitle" aria-hidden="true">
+  <div class="chronicle-stage">
+    <div class="chronicle-book">
+      <div class="chronicle-spread">
+        <section class="chronicle-leaf chronicle-leaf-menu" id="chronicleMenuPage" aria-label="Chronicle menu">
+          <p class="chronicle-eyebrow">The Faerie's Fortune</p>
+          <h2 id="chronicleTitle">The Party Chronicle</h2>
+          <div class="chronicle-rule"></div>
+          <nav class="chronicle-links">
+            <a href="dashboard.html">← Your Parties</a>
+            <button id="drawerLogout" type="button">Log Out</button>
+          </nav>
+          <h3 class="chronicle-section-title">Table of Contents</h3>
+          <div class="chronicle-toc" id="bookSessionList" aria-label="Choose a session"></div>
+          <p class="chronicle-menu-footer">Every adventure deserves to be remembered.</p>
+        </section>
+        <section class="chronicle-leaf chronicle-leaf-notes" aria-label="Session notes">
+          <div class="chronicle-page-top">
+            <span class="chronicle-eyebrow">Session Record</span>
+            <div>
+              <button class="chronicle-toc-toggle" id="chronicleTocToggle" aria-expanded="false" type="button">Contents</button>
+              <button class="chronicle-close" id="drawerClose" type="button" aria-label="Close the chronicle">×</button>
+            </div>
           </div>
-          <div class="notebook-page" id="notebookPage">
-            <p class="page-empty">Loading…</p>
+          <div class="chronicle-session-page" id="notebookPage" aria-live="polite">
+            <p class="page-empty">Loading sessions…</p>
           </div>
-          <div class="notebook-nav" aria-live="polite">
-            <span class="page-indicator" id="pageIndicator"></span>
+          <div class="chronicle-compose">
+            <label class="sr-only" for="noteInput">Write a note for this session</label>
+            <input type="text" id="noteInput" placeholder="Write a note for this session…" maxlength="200">
+            <button type="button" id="noteBtn">Add note</button>
           </div>
+        </section>
+        <div class="chronicle-turn-leaf" id="chronicleTurnLeaf" aria-hidden="true">
+          <div class="chronicle-turn-copy"></div>
         </div>
       </div>
+      <div class="chronicle-cover" aria-hidden="true">
+        <span class="chronicle-cover-mark">✦</span>
+        <strong>The Party Chronicle</strong>
+        <span>Where every adventure is remembered</span>
+      </div>
     </div>
+    <nav class="chronicle-toolbar" aria-label="Chronicle page navigation">
+      <button id="pagePrev" type="button" disabled>‹ Previous</button>
+      <span id="pageIndicator" class="chronicle-page-count" aria-live="polite">Loading…</span>
+      <button id="pageNext" type="button" disabled>Next ›</button>
+    </nav>
   </div>
 </aside>
 
@@ -94,14 +114,11 @@
           <ul id="log"><li class="empty">Loading…</li></ul>
         </section>
       </div>
-      <button class="menu-btn book-button" id="hamburgerBtn" aria-expanded="false" aria-controls="drawer" aria-label="Open the party chronicle">
-        <span class="book-fallback" aria-hidden="true">
-          <span class="fallback-rune">✦</span>
-          <span>Party Chronicle</span>
-        </span>
-        <canvas id="bookClosedScene" aria-hidden="true"></canvas>
-        <span class="sr-only">Open party chronicle</span>
-      </button>
+      <button class="chronicle-trigger" id="hamburgerBtn" type="button" aria-expanded="false" aria-controls="drawer" aria-label="Open the party chronicle">
+  <span class="chronicle-trigger-symbol" aria-hidden="true">✦</span>
+  <span class="chronicle-trigger-title">Party Chronicle</span>
+  <span class="chronicle-trigger-subtitle">Open the book</span>
+</button>
     </main>
   </div>
 </div>
@@ -114,9 +131,9 @@
 <!-- 3D dice -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="dice.js?v=5"></script>
-<script src="book.js?v=22"></script>
+<script src="book.js?v=30"></script>
 
 <!-- This party's roster, sessions, and shared log -->
-<script src="party-room.js?v=20"></script>
+<script src="party-room.js?v=30"></script>
 </body>
 </html>
