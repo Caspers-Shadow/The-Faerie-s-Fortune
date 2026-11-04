@@ -69,9 +69,16 @@ function setupPresence() {
 // fallback for projects where database replication has not been switched on.
 function setupLogSync() {
   let refreshTimer = null;
-  const queueRefresh = () => {
+  const queueRefresh = payload => {
+    const entryType = payload?.new?.type || payload?.old?.type;
+    if (entryType === 'note' || entryType === 'session') queueRefresh.shouldUpdateTome = true;
     clearTimeout(refreshTimer);
-    refreshTimer = setTimeout(() => { refreshLog(); refreshNotebook(); }, 120);
+    refreshTimer = setTimeout(() => {
+      refreshLog();
+      // Do not redraw note forms for every die roll; only notes/session changes.
+      if (queueRefresh.shouldUpdateTome) refreshNotebook();
+      queueRefresh.shouldUpdateTome = false;
+    }, 120);
   };
 
   supabaseClient
