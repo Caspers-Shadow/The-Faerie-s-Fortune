@@ -52,6 +52,7 @@
     ghost.removeAttribute('aria-expanded');
     ghost.setAttribute('aria-hidden', 'true');
     ghost.setAttribute('tabindex', '-1');
+    ghost.classList.remove('chronicle-trigger');
     ghost.classList.add('chronicle-ghost');
     Object.assign(ghost.style, {
       left: bounds.left + 'px', top: bounds.top + 'px',
@@ -136,7 +137,6 @@
     await new Promise(resolve => requestAnimationFrame(resolve));
     if (token !== motionId) return;
     const coverBounds = cover.getBoundingClientRect();
-    createTravellingCover(triggerBounds);
     trigger.classList.add('is-travelling');
     // The long travelling move and the slow cover hinge are intentionally
     // separate so the reader can perceive one physical, leather-bound object.
