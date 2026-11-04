@@ -5,9 +5,9 @@
 .tome-root:not([data-state="closed"]) .tome-shade{opacity:1;pointer-events:auto}
 .tome-shell{position:fixed;left:50%;top:50%;width:min(84vw,1000px,112dvh);height:min(80dvh,800px);min-height:300px;transform-origin:center;transform:translate(-50%,-50%) translate(var(--tome-rest-x),var(--tome-rest-y)) scale(var(--tome-rest-scale)) rotate(4deg);transition:transform 1.38s cubic-bezier(.2,.74,.19,1);perspective:2200px;transform-style:preserve-3d;pointer-events:none}
 .tome-root[data-state="moving"] .tome-shell,.tome-root[data-state="opening"] .tome-shell,.tome-root[data-state="open"] .tome-shell,.tome-root[data-state="closing"] .tome-shell{transform:translate(-50%,-50%) translate(0,0) scale(1) rotate(0)}
-.tome-spread{position:absolute;inset:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:12px solid #3b2017;border-radius:9px 19px 19px 9px;background:#e6d1a0;box-shadow:0 30px 70px #000b,0 9px 0 #2a140c,inset 0 0 0 3px #bc945a;clip-path:inset(0 0 0 50%);transition:clip-path 1.7s cubic-bezier(.18,.66,.16,1);transform:translateZ(0);overflow:hidden}
+.tome-spread{position:absolute;inset:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:12px solid #3b2017;border-radius:9px 19px 19px 9px;background:#e6d1a0;box-shadow:0 30px 70px #000b,0 9px 0 #2a140c,inset 0 0 0 3px #bc945a;clip-path:inset(0 0 0 50%);transition:clip-path 1.88s cubic-bezier(.26,.04,.19,.98);transform:translateZ(0);overflow:hidden}
 .tome-root[data-state="opening"] .tome-spread,.tome-root[data-state="open"] .tome-spread,.tome-root[data-state="closing"] .tome-spread{clip-path:inset(0)}
-.tome-spread:after{content:"";pointer-events:none;position:absolute;inset:0 auto 0 50%;transform:translateX(-50%);width:44px;z-index:9;background:linear-gradient(90deg,transparent,#3b291a44 42%,#fff0c84d 54%,transparent)}
+.tome-spread:after{content:"";pointer-events:none;position:absolute;inset:0 auto 0 50%;transform:translateX(-50%);width:44px;z-index:9;background:linear-gradient(90deg,transparent,#3b291a29 42%,#fff0c82d 54%,transparent)}
 .tome-page{min-width:0;min-height:0;position:relative;display:flex;flex-direction:column;overflow:hidden;color:#53351e;background:
  radial-gradient(ellipse at 50% 44%,#f8e9c792,transparent 75%),
  repeating-linear-gradient(0deg,transparent 0 38px,#69421e09 39px),
@@ -44,7 +44,7 @@
 .tome-blank-content{height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:20px;color:#ac8957}
 .tome-blank-sigil{width:110px;height:110px;display:grid;place-items:center;border:2px solid #b39361;border-radius:50%;font-size:54px;box-shadow:0 0 0 7px #ac89571c}
 .tome-blank-content p{font:italic 17px 'Crimson Pro',Georgia,serif;max-width:30ch}
-.tome-cover{position:absolute;top:0;left:50%;width:50%;height:100%;z-index:15;border:6px ridge #c49a60;border-left:18px solid #2c1510;border-radius:8px 17px 17px 8px;transform-origin:left center;transform:rotateY(0) translateZ(9px);transform-style:preserve-3d;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:transform 1.8s cubic-bezier(.18,.66,.16,1);pointer-events:auto;cursor:pointer;
+.tome-cover{position:absolute;top:0;left:50%;width:50%;height:100%;z-index:15;border:6px ridge #c49a60;border-left:18px solid #2c1510;border-radius:8px 17px 17px 8px;transform-origin:left center;transform:rotateY(0) translateZ(9px);transform-style:preserve-3d;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:transform 1.88s cubic-bezier(.28,.06,.16,.98);pointer-events:auto;cursor:pointer;
  background:
  radial-gradient(circle at center,#d19f5b30,transparent 44%),
  repeating-linear-gradient(105deg,transparent 0 15px,#00000017 16px 18px),
@@ -79,9 +79,9 @@
 .tome-turn{position:absolute;top:12px;bottom:12px;left:50%;width:calc(50% - 12px);z-index:12;display:none;opacity:1;transform-origin:left center;transform-style:preserve-3d;pointer-events:none;transition:opacity .18s ease-out}
 .tome-turn.is-visible{display:block}
 .tome-turn.is-prev{left:12px;transform-origin:right center}
-.tome-turn.is-next.is-flipping{animation:tome-flip-next 1.22s cubic-bezier(.45,0,.15,1) both}
-.tome-turn.is-prev.is-flipping{animation:tome-flip-prev 1.22s cubic-bezier(.45,0,.15,1) both}
-.tome-turn-face{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:1px solid #ba9564;background:linear-gradient(95deg,#c6a877,#f1dfb5 13%,#e8d2a6 95%);box-shadow:0 12px 32px #3d251633;padding:26px 31px;box-sizing:border-box}
+.tome-turn.is-next.is-flipping{animation:tome-turn-gentle-next 1.28s cubic-bezier(.34,.03,.19,.96) both}
+.tome-turn.is-prev.is-flipping{animation:tome-turn-gentle-prev 1.28s cubic-bezier(.34,.03,.19,.96) both}
+.tome-turn-face{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:1px solid #ba9564;background:linear-gradient(95deg,#c6a877,#f1dfb5 13%,#e8d2a6 95%);box-shadow:none;padding:26px 31px;box-sizing:border-box}
 .tome-turn-face--back{transform:rotateY(180deg)}
 .tome-turn-title{font:600 clamp(17px,2.1vw,26px) 'Cinzel',serif;color:#634323;margin:0 0 16px}
 .tome-turn-small{font:italic 16px 'Crimson Pro',Georgia,serif;color:#715236}
@@ -102,7 +102,7 @@
  .tome-progress{font-size:10px}
  .tome-close{top:-10px;right:-8px}
  .tome-turn,.tome-turn.is-prev{left:7px;top:7px;bottom:7px;width:calc(100% - 14px);transform-origin:left center}
- .tome-turn.is-prev.is-flipping{animation:tome-flip-next 1.22s cubic-bezier(.45,0,.15,1) both}
+ .tome-turn.is-prev.is-flipping{animation:tome-turn-gentle-next 1.28s cubic-bezier(.34,.03,.19,.96) both}
 }
 @media(prefers-reduced-motion:reduce){
  .tome-shell,.tome-shade,.tome-cover,.tome-toolbar{transition:none}
@@ -129,7 +129,7 @@
   inset:0!important;position:absolute!important;width:100%!important;height:100%!important;
   padding:clamp(18px,2.7vw,40px)!important;overflow:hidden!important;
   display:flex!important;flex-direction:column!important;
-  box-shadow:0 8px 25px #3d251633;
+  box-shadow:none;
   background:radial-gradient(ellipse at center,#faf0d68c,transparent 70%),
   linear-gradient(95deg,#d1b483,#f1dfb5 13%,#e7d1a2 95%);
 }
@@ -242,10 +242,10 @@
 .tome-turn-face--front{transform:rotateY(0deg) translateZ(1px)!important}
 .tome-turn-face--back{transform:rotateY(180deg) translateZ(1px)!important}
 .tome-turn.is-flipping .tome-turn-face--front{
-  animation:tome-old-ink-visibility 1.22s step-end both!important;
+  animation:tome-old-ink-visibility 1.28s step-end both!important;
 }
 .tome-turn.is-flipping .tome-turn-face--back{
-  animation:tome-new-ink-visibility 1.22s step-end both!important;
+  animation:tome-new-ink-visibility 1.28s step-end both!important;
 }
 @keyframes tome-old-ink-visibility{
   0%,49.9%{opacity:1}
@@ -258,4 +258,85 @@
 @media(prefers-reduced-motion:reduce){
   .tome-turn.is-flipping .tome-turn-face--front,
   .tome-turn.is-flipping .tome-turn-face--back{animation-duration:.001s!important}
+}
+
+
+/* Book mechanics v9. A shared hinge duration controls both the leather cover
+   and the reveal of the page block, on opening AND closing. */
+.tome-root[data-state="closing"] .tome-spread{
+  clip-path:inset(0 0 0 50%);
+}
+.tome-cover{
+  backface-visibility:visible;
+  -webkit-backface-visibility:visible;
+  box-shadow:7px 10px 22px #0005,inset 0 0 0 8px #25110d,
+    inset 0 0 0 14px #bf945a56;
+}
+.tome-cover > *{
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+}
+/* A quiet leather inside face is seen as the cover goes over the spine.
+   It softly gives way to the parchment instead of popping offscreen. */
+.tome-cover::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:18;
+  pointer-events:none;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  transform:rotateY(180deg) translateZ(1px);
+  border-radius:9px 17px 17px 9px;
+  border:8px double #c79a57;
+  background:
+    radial-gradient(ellipse at 50% 45%,#aa814755,transparent 67%),
+    repeating-linear-gradient(103deg,transparent 0 15px,#00000010 16px),
+    linear-gradient(115deg,#331b14,#734832,#2f1712);
+  box-shadow:inset 0 0 0 8px #271611;
+}
+.tome-root[data-state="opening"] .tome-cover{
+  animation:tome-cover-unveil 1.88s linear both;
+}
+.tome-root[data-state="open"] .tome-cover{opacity:0}
+.tome-root[data-state="closing"] .tome-cover{
+  animation:tome-cover-veil 1.88s linear both;
+}
+@keyframes tome-cover-unveil{
+  0%,76%{opacity:1}
+  100%{opacity:0}
+}
+@keyframes tome-cover-veil{
+  0%{opacity:0}
+  24%,100%{opacity:1}
+}
+/* The original face shadows were doubled and disappeared in one frame.
+   Keep the sheet flat at the beginning/end, with a subtle temporary shadow
+   only while it is raised away from the paper stack. */
+.tome-turn-face,.tome-turn-face.tome-page{
+  box-shadow:none!important;
+}
+.tome-turn{
+  box-shadow:none;
+  filter:none;
+}
+@keyframes tome-turn-gentle-next{
+  0%{transform:rotateY(0deg);box-shadow:2px 3px 3px #2b170e08}
+  30%{transform:rotateY(-55deg);box-shadow:7px 7px 17px #2b170e1c}
+  52%{transform:rotateY(-98deg);box-shadow:8px 8px 21px #2b170e23}
+  76%{transform:rotateY(-154deg);box-shadow:-5px 4px 12px #2b170e13}
+  100%{transform:rotateY(-180deg);box-shadow:0 0 0 #2b170e00}
+}
+@keyframes tome-turn-gentle-prev{
+  0%{transform:rotateY(0deg);box-shadow:-2px 3px 3px #2b170e08}
+  30%{transform:rotateY(55deg);box-shadow:-7px 7px 17px #2b170e1c}
+  52%{transform:rotateY(98deg);box-shadow:-8px 8px 21px #2b170e23}
+  76%{transform:rotateY(154deg);box-shadow:5px 4px 12px #2b170e13}
+  100%{transform:rotateY(180deg);box-shadow:0 0 0 #2b170e00}
+}
+@media(prefers-reduced-motion:reduce){
+  .tome-root[data-state="opening"] .tome-cover,
+  .tome-root[data-state="closing"] .tome-cover{animation:none}
+  .tome-root[data-state="opening"] .tome-cover{opacity:0}
+  .tome-root[data-state="closing"] .tome-cover{opacity:1}
 }
