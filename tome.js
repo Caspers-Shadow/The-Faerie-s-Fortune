@@ -16,6 +16,7 @@
   }
   let sessions = [], notesBySession = {}, spreadIndex = 0, busy = false;
   let activeTurn = 0, motionToken = 0;
+  const drafts = new Map();
   let state = 'closed';
   spread.inert=true;
   toolbar.inert=true;
@@ -184,7 +185,10 @@
     else {
       const form=el('form','tome-note-form');
       const input=el('input');input.type='text';input.placeholder='Inscribe a memory…';
-      input.maxLength=200;input.required=true;input.setAttribute('aria-label','Write a note for '+(session.label||'Session '+(index+1)));
+      input.maxLength=200;input.required=true;
+      input.value=drafts.get(session.id)||'';
+      input.addEventListener('input',()=>drafts.set(session.id,input.value));
+      input.setAttribute('aria-label','Write a note for '+(session.label||'Session '+(index+1)));
       const button=el('button','','Inscribe');button.type='submit';
       form.append(input,button);
       form.addEventListener('submit',async event=>{
@@ -202,7 +206,7 @@
           }}));
         });
         button.disabled=false;
-        if(result?.ok) input.value='';
+        if(result?.ok){drafts.delete(session.id);input.value='';}
         else {
           input.setCustomValidity(result?.error||'Could not save this note.');
           input.reportValidity();input.setCustomValidity('');
