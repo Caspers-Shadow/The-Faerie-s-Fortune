@@ -8,7 +8,7 @@ let party = null;
 let myRole = null;       // 'dm' | 'player'
 let currentSessionId = null;
 let sessionsList = [];   // ascending by started_at
-let pageIndex = 0;       // session on the right-hand leaf
+let pageIndex = 0;       // page 0 is contents, 1..N are sessions
 let onlineIds = new Set();
 
 (async function initPartyRoom() {
@@ -33,7 +33,7 @@ let onlineIds = new Set();
   setupLogSync();
   await renderPartyInfo();
   await refreshLog();
-  await refreshNotebook({ selectLatest: true });
+  await refreshNotebook({ selectContents: true });
 })();
 
 function showBlocked(message) {
@@ -191,9 +191,8 @@ async function recordRoll(cfg, display, isCrit, isFail) {
   await refreshLog();
 }
 
-// Session chronicle state: one session occupies one page.
+// The book has a contents page (0), then exactly one session per page (1..N).
 const drawer = document.getElementById('drawer');
-const menuBtn = document.getElementById('hamburgerBtn');
 let notesBySession = {};
 let chronicleBusy = false;
 let notebookRequest = 0;
@@ -201,131 +200,115 @@ let notebookRequest = 0;
 async function refreshNotebook(options = {}) {
   if (!partyId || !me) return;
   const request = ++notebookRequest;
-  const selectedId = options.selectSessionId ||
-    (options.selectLatest ? currentSessionId : sessionsList[pageIndex]?.id);
+  const previousSession = pageIndex > 0 ? sessionsList[pageIndex - 1]?.id : null;
+  const selectedId = options.selectSessionId || (options.selectLatest ? currentSessionId : previousSession);
   const [{ data: sessions, error: sessionsError }, { data: notes, error: notesError }] = await Promise.all([
     supabaseClient.from('sessions').select('id, label, started_at')
       .eq('party_id', partyId).order('started_at', { ascending: true }),
-    supabaseClient.from('log_entries')
-      .select('session_id, note_text, created_at, user:profiles(display_name)')
+    supabaseClient.from('log_entries').select('session_id, note_text, created_at, user:profiles(display_name)')
       .eq('party_id', partyId).eq('type', 'note').order('created_at', { ascending: true }),
   ]);
   if (request !== notebookRequest) return;
-  const page = document.getElementById('notebookPage');
   if (sessionsError || notesError) {
-    page.textContent = 'Could not load the chronicle. Refresh to try again.';
+    document.getElementById('notebookPage').textContent = 'Could not load the chronicle. Please refresh.';
     console.error('Chronicle loading failed', sessionsError, notesError);
     return;
   }
   sessionsList = sessions || [];
   notesBySession = {};
-  (notes || []).forEach(note => {
-    (notesBySession[note.session_id] ||= []).push(note);
-  });
-  const selectedIndex = sessionsList.findIndex(s => s.id === selectedId);
-  pageIndex = selectedIndex >= 0 ? selectedIndex :
-    Math.min(pageIndex, Math.max(0, sessionsList.length - 1));
+  (notes || []).forEach(note => (notesBySession[note.session_id] ||= []).push(note));
+  if (options.selectContents) pageIndex = 0;
+  else if (selectedId) {
+    const target = sessionsList.findIndex(s => s.id === selectedId);
+    pageIndex = target < 0 ? Math.min(pageIndex, sessionsList.length) : target + 1;
+  } else pageIndex = Math.min(pageIndex, sessionsList.length);
   renderNotebookPage();
 }
 
-function makeSessionMarkup(session, index) {
-  const notes = notesBySession[session.id] || [];
-  const title = session.label || ('Session ' + (index + 1));
-  let html = '<h3 class="page-session-title">' + escapeHtml(title) + '</h3>' +
-    '<p class="page-session-date">' + escapeHtml(dateTimeLabel(session.started_at)) + '</p>';
-  if (!notes.length) html += '<p class="page-empty">No notes have yet been inscribed upon this page.</p>';
-  else html += '<ul class="page-notes">' + notes.map(note =>
-    '<li><span class="note-author">' +
-    (note.user ? escapeHtml(note.user.display_name) : 'Someone') + ':</span> ' +
-    escapeHtml(note.note_text || '') +
-    '<span class="note-time">' + escapeHtml(timeLabel(note.created_at)) + '</span></li>'
-  ).join('') + '</ul>';
-  return html;
-}
-
 function renderNotebookPage() {
-  const rightEl = document.getElementById('notebookPage');
-  const leftEl = document.getElementById('leftNotebookPage');
-  const leftForm = document.getElementById('leftNoteForm');
-  const leftLeaf = document.getElementById('chronicleLeftLeaf');
-  if (!sessionsList.length) {
-    rightEl.innerHTML = '<p class="page-empty">No sessions yet. Your DM can begin the first chapter.</p>';
-    if (leftEl) leftEl.innerHTML = '<div class="chronicle-frontispiece"><span class="chronicle-frontispiece-mark">✧</span><h3>Every tale begins somewhere</h3></div>';
-    if (leftForm) leftForm.hidden = true;
-    window.dispatchEvent(new CustomEvent('ff:book-data', { detail: { sessions: [], index: 0 } }));
-    return;
+  const content = document.getElementById('notebookPage');
+  const contents = document.getElementById('chronicleMenuPage');
+  const form = document.getElementById('rightNoteForm');
+  const sealed = document.getElementById('chronicleReadOnlyNote');
+  const eyebrow = document.getElementById('chroniclePageEyebrow');
+  const isContents = pageIndex === 0;
+  const latest = sessionsList.length - 1;
+  contents.hidden = !isContents;
+  content.hidden = isContents;
+  const writable = !isContents && pageIndex - 1 === latest;
+  form.hidden = !writable;
+  sealed.hidden = isContents || writable;
+  eyebrow.textContent = isContents ? 'The Chronicle · Contents' : 'The Chronicle · Chapter ' + pageIndex;
+  if (!isContents) {
+    const index = pageIndex - 1, session = sessionsList[index], notes = notesBySession[session.id] || [];
+    const title = session.label || ('Session ' + (index + 1));
+    content.innerHTML = '<h3 class="page-session-title">' + escapeHtml(title) + '</h3>' +
+      '<p class="page-session-date">' + escapeHtml(dateTimeLabel(session.started_at)) + '</p>' +
+      (!notes.length ? '<p class="page-empty">No notes have been inscribed on this page.</p>' :
+        '<ul class="page-notes">' + notes.map(note =>
+          '<li><span class="note-author">' + (note.user ? escapeHtml(note.user.display_name) : 'Someone') +
+          ':</span> ' + escapeHtml(note.note_text || '') +
+          '<span class="note-time">' + escapeHtml(timeLabel(note.created_at)) + '</span></li>').join('') + '</ul>');
+    content.scrollTop = 0;
   }
-  pageIndex = Math.max(0, Math.min(pageIndex, sessionsList.length - 1));
-  rightEl.innerHTML = makeSessionMarkup(sessionsList[pageIndex], pageIndex);
-  rightEl.scrollTop = 0;
-  if (leftEl) {
-    if (pageIndex > 0) {
-      leftEl.innerHTML = makeSessionMarkup(sessionsList[pageIndex - 1], pageIndex - 1);
-      leftEl.scrollTop = 0;
-      leftLeaf?.setAttribute('aria-label', 'Session ' + pageIndex + ' notes');
-    } else {
-      leftEl.innerHTML = '<div class="chronicle-frontispiece"><span class="chronicle-frontispiece-mark">✧</span><h3>Every tale begins somewhere</h3><p>Turn the leaves and discover the stories kept within.</p></div>';
-      leftLeaf?.setAttribute('aria-label', 'Inside cover');
-    }
-  }
-  if (leftForm) leftForm.hidden = pageIndex === 0;
-  const leftFolio = document.getElementById('leftFolio');
-  if (leftFolio) leftFolio.textContent = pageIndex > 0 ? 'Folio ' + pageIndex : '';
   window.dispatchEvent(new CustomEvent('ff:book-data', { detail: {
-    index: pageIndex, sessions: sessionsList.map((session, i) =>
-      ({ id: session.id, title: session.label || ('Session ' + (i + 1)) }))
+    index: pageIndex,
+    sessions: sessionsList.map((s, i) => ({ id: s.id, title: s.label || ('Session ' + (i + 1)) })),
   }}));
 }
 
 function goToNotebookPage(index) {
-  if (chronicleBusy || !Number.isInteger(index) || index < 0 || index >= sessionsList.length) return;
-  if (pageIndex === index) return;
+  if (chronicleBusy || !Number.isInteger(index) || index < 0 || index > sessionsList.length || pageIndex === index) return;
   const direction = index > pageIndex ? 1 : -1;
   chronicleBusy = true;
   window.dispatchEvent(new CustomEvent('ff:book-turn', { detail: { direction } }));
-  // Data updates independently from decorative animation; controls never rely on animation events.
   pageIndex = index;
   renderNotebookPage();
-  window.setTimeout(() => { chronicleBusy = false; }, 450);
+  window.setTimeout(() => { chronicleBusy = false; }, 720);
 }
-
 window.addEventListener('ff:book-control', event => {
-  const direction = Number(event.detail?.direction) || 0;
+  const direction = Number(event.detail?.direction);
   if (direction === -1 || direction === 1) goToNotebookPage(pageIndex + direction);
 });
-window.addEventListener('ff:book-go', event => goToNotebookPage(Number(event.detail?.index)));
+window.addEventListener('ff:book-go', event => goToNotebookPage(Number(event.detail?.index) + 1));
+window.addEventListener('ff:book-contents', () => goToNotebookPage(0));
+window.addEventListener('ff:book-open', () => {
+  pageIndex = 0;
+  renderNotebookPage();
+});
 
-async function inscribeNote(inputId, buttonId, sessionIndex) {
-  const input = document.getElementById(inputId);
-  const button = document.getElementById(buttonId);
+document.getElementById('rightNoteForm').addEventListener('submit', async event => {
+  event.preventDefault();
+  const input = document.getElementById('noteInput');
+  const button = document.getElementById('noteBtn');
   const text = input.value.trim();
-  const session = sessionsList[sessionIndex];
-  if (!text || !session || button.disabled) return;
+  if (!text || button.disabled || pageIndex < 1) return;
+  const session = sessionsList[pageIndex - 1];
+  if (!session || session.id !== sessionsList[sessionsList.length - 1]?.id) return;
   button.disabled = true;
   try {
+    // Re-check before saving, in case a DM has started a newer session elsewhere.
+    const { data: newest, error: newestError } = await supabaseClient.from('sessions')
+      .select('id').eq('party_id', partyId).order('started_at', { ascending: false }).limit(1).maybeSingle();
+    if (newestError || newest?.id !== session.id) {
+      await refreshNotebook();
+      throw new Error('This chapter has been sealed because a newer session has started.');
+    }
     const { error } = await supabaseClient.from('log_entries').insert({
       party_id: partyId, session_id: session.id,
       user_id: me.id, type: 'note', note_text: text,
     });
     if (error) throw error;
     input.value = '';
-    await refreshNotebook({ selectSessionId: sessionsList[pageIndex]?.id });
+    await refreshNotebook({ selectSessionId: session.id });
   } catch (error) {
-    console.error('Could not inscribe the note:', error);
-    input.setCustomValidity('Could not save this note. Please try again.');
+    console.error('Could not save chronicle note:', error);
+    input.setCustomValidity(error.message || 'Could not save note.');
     input.reportValidity();
     input.setCustomValidity('');
   } finally {
     button.disabled = false;
   }
-}
-document.getElementById('rightNoteForm').addEventListener('submit', event => {
-  event.preventDefault();
-  inscribeNote('noteInput','noteBtn',pageIndex);
-});
-document.getElementById('leftNoteForm').addEventListener('submit', event => {
-  event.preventDefault();
-  if (pageIndex > 0) inscribeNote('leftNoteInput','leftNoteBtn',pageIndex - 1);
 });
 document.getElementById('refreshBtn').addEventListener('click', () => {
   refreshLog();
