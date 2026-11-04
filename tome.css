@@ -160,3 +160,9 @@
 .tome-root .tome-page:not(.tome-probe){
   scrollbar-width:none!important;
 }
+
+/* Smooth layer compositing without changing the book's geometry. */
+.tome-shell{will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.tome-cover{will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.tome-turn{will-change:transform}
+.tome-turn-face{will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden}
