@@ -379,8 +379,10 @@
       .filter(i=>i!==null&&pages[i]).map(label).join(' · ')||'Final leaf';
   }
 
-  function animationFace(target,page){
+  function animationFace(target,page,side){
     target.classList.add('tome-page');
+    target.classList.toggle('tome-page--left',side==='left');
+    target.classList.toggle('tome-page--right',side==='right');
     renderPage(target,page,true);
   }
   // The real contents of the two sides of a turning page are drawn *before*
@@ -397,15 +399,15 @@
     const turnId=++activeTurn;
     turn.className='tome-turn is-visible '+(direction>0?'is-next':'is-prev');
     if(mobile()){
-      animationFace(turnFront,pages[current.right]);
-      animationFace(turnBack,pages[destination.right]);
+      animationFace(turnFront,pages[current.right],'right');
+      animationFace(turnBack,pages[destination.right],'right');
     }else if(direction>0){
-      animationFace(turnFront,pages[current.right]);
-      animationFace(turnBack,pages[destination.left]);
+      animationFace(turnFront,pages[current.right],'right');
+      animationFace(turnBack,pages[destination.left],'left');
       renderPage(right,pages[destination.right]); // hidden behind the turning leaf
     }else{
-      animationFace(turnFront,pages[current.left]);
-      animationFace(turnBack,pages[destination.right]);
+      animationFace(turnFront,pages[current.left],'left');
+      animationFace(turnBack,pages[destination.right],'right');
       renderPage(left,pages[destination.left]); // revealed beneath the turning leaf
     }
     void turn.offsetWidth;
