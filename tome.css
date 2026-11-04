@@ -320,19 +320,35 @@
   box-shadow:none;
   filter:none;
 }
+/* Rotation is compositor-friendly. No box-shadow rasterization on every frame. */
 @keyframes tome-turn-gentle-next{
-  0%{transform:rotateY(0deg);box-shadow:2px 3px 3px #2b170e08}
-  30%{box-shadow:7px 7px 17px #2b170e1c}
-  52%{box-shadow:8px 8px 21px #2b170e23}
-  76%{box-shadow:-5px 4px 12px #2b170e13}
-  100%{transform:rotateY(-180deg);box-shadow:0 0 0 #2b170e00}
+  from{transform:rotateY(0deg)}
+  to{transform:rotateY(-180deg)}
 }
 @keyframes tome-turn-gentle-prev{
-  0%{transform:rotateY(0deg);box-shadow:-2px 3px 3px #2b170e08}
-  30%{box-shadow:-7px 7px 17px #2b170e1c}
-  52%{box-shadow:-8px 8px 21px #2b170e23}
-  76%{box-shadow:5px 4px 12px #2b170e13}
-  100%{transform:rotateY(180deg);box-shadow:0 0 0 #2b170e00}
+  from{transform:rotateY(0deg)}
+  to{transform:rotateY(180deg)}
+}
+.tome-turn::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:4;
+  pointer-events:none;
+  background:linear-gradient(90deg,#27140c35,transparent 24%,transparent 76%,#27140c25);
+  transform:translateZ(2px);
+  opacity:0;
+}
+.tome-turn.is-flipping::after{
+  animation:tome-paper-soft-shading 1.28s ease-in-out both;
+}
+@keyframes tome-paper-soft-shading{
+  0%,100%{opacity:0}
+  47%,55%{opacity:.33}
+}
+.tome-spread{will-change:clip-path}
+@media(prefers-reduced-motion:reduce){
+  .tome-turn.is-flipping::after{animation:none!important}
 }
 @media(prefers-reduced-motion:reduce){
   .tome-root[data-state="opening"] .tome-cover,
