@@ -16,6 +16,7 @@
   }
   let sessions = [], notesBySession = {}, pages = [], spreadIndex = 0, busy = false;
   let activeTurn = 0, motionToken = 0;
+  let queuedContent = null, pendingReflow = false;
   const drafts = new Map();
   let state = 'closed';
   spread.inert=true;
@@ -422,6 +423,14 @@
     turn.className='tome-turn';
     busy=false;
     render(); // rebind real inputs and restore independent focusable controls
+    if(queuedContent){
+      const update=queuedContent;
+      queuedContent=null;
+      receiveContent(update);
+    }else if(pendingReflow){
+      pendingReflow=false;
+      reflow();
+    }
   }
   root.addEventListener('keydown',event=>{
     if(state!=='open')return;
@@ -455,11 +464,18 @@
     else spreadIndex=Math.min(spreadIndex,totalSpreads()-1);
     render();
   }
-  window.addEventListener('ff:tome:content',event=>{
-    const d=event.detail||{};
+  function receiveContent(d){
     sessions=d.sessions||[];
     notesBySession=d.notesBySession||{};
     reflow(d);
+  }
+  window.addEventListener('ff:tome:content',event=>{
+    const d=event.detail||{};
+    if(busy && turn.className.includes('is-visible')){
+      queuedContent=d;
+      return;
+    }
+    receiveContent(d);
   });
   window.addEventListener('ff:tome:error',event=>{
     const message=event.detail?.message||'Could not load the Chronicle.';
@@ -473,7 +489,8 @@
     resizeTimer=setTimeout(()=>{
       if(lastWidth!==window.innerWidth||lastHeight!==window.innerHeight){
         lastWidth=window.innerWidth;lastHeight=window.innerHeight;
-        reflow();
+        if(busy && turn.className.includes('is-visible'))pendingReflow=true;
+        else reflow();
       }
     },130);
   });
