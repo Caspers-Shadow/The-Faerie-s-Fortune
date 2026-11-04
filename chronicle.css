@@ -347,3 +347,89 @@ margin-top:13px;background:linear-gradient(90deg,#9f7542,transparent)}
 @media(prefers-reduced-motion:reduce){
   .chronicle-book,.chronicle-cover{transition:none!important}
 }
+
+/* V33 — recorded opening issue: the old CSS moved the entire spread from
+   offscreen while simultaneously rotating its cover. The animation is now:
+   (1) a single closed book crosses the table; (2) the real cover opens.
+   The session page layout remains unchanged. */
+.chronicle-trigger{
+  left:auto!important;
+  right:clamp(24px,3vw,54px)!important;
+  bottom:clamp(26px,4vh,46px)!important;
+  width:clamp(176px,13.3vw,226px)!important;
+  height:clamp(236px,33vh,301px)!important;
+  transform-origin:50% 70%!important;
+  transform:perspective(900px) rotateY(4deg) rotateZ(4deg)!important;
+  transition:transform .35s ease,filter .35s ease,opacity .2s ease!important;
+  box-shadow:inset 0 0 0 5px #21100dd4,inset 0 0 0 11px #b98c4f48,
+    12px 12px 0 #27100c,18px 24px 28px #0009!important;
+}
+.chronicle-trigger:hover,.chronicle-trigger:focus-visible{
+  transform:translateY(-9px) perspective(900px) rotateY(4deg) rotateZ(2deg)!important;
+}
+.chronicle-trigger.is-travelling{opacity:0!important;pointer-events:none!important}
+.chronicle-ghost{
+  position:fixed!important;right:auto!important;bottom:auto!important;
+  left:0;top:0;margin:0!important;z-index:200!important;
+  box-sizing:border-box!important;pointer-events:none!important;
+  transform:none!important;
+  transition:none!important;filter:none!important;
+  box-shadow:inset 0 0 0 5px #21100dd4,inset 0 0 0 11px #b98c4f48,
+    12px 14px 25px #000a!important;
+}
+.chronicle-ghost:hover{transform:none!important}
+.chronicle-modal{pointer-events:none!important}
+.chronicle-stage{pointer-events:auto}
+.chronicle-book,
+.chronicle-modal.open .chronicle-book{
+  /* Position remains centred throughout. The moving closed cover is a
+     travelling copy of the trigger, not a stretched, misaligned spread. */
+  transform:none!important;
+  transform-style:preserve-3d!important;
+  transition:none!important;
+}
+.chronicle-book.is-flight{opacity:0!important;pointer-events:none!important}
+.chronicle-book:not(.is-flight){opacity:1!important}
+.chronicle-book .chronicle-cover,
+.chronicle-modal.open .chronicle-book.is-closed .chronicle-cover,
+.chronicle-modal.open .chronicle-book.is-closing .chronicle-cover{
+  visibility:visible!important;
+  transform:rotateY(0deg) translateZ(10px)!important;
+  backface-visibility:hidden!important;
+  -webkit-backface-visibility:hidden!important;
+  transition:transform 2380ms cubic-bezier(.16,.64,.19,1)!important;
+}
+.chronicle-modal.open .chronicle-book.is-opening .chronicle-cover,
+.chronicle-modal.open .chronicle-book.is-open .chronicle-cover{
+  transform:rotateY(-179deg) translateZ(10px)!important;
+  visibility:visible!important;
+}
+.chronicle-book .chronicle-spread{
+  /* A closed book may not reveal its left-hand page before the cover turns. */
+  clip-path:inset(0 0 0 50%);
+  transition:clip-path 2380ms cubic-bezier(.16,.64,.19,1)!important;
+}
+.chronicle-book.is-opening .chronicle-spread,
+.chronicle-book.is-open .chronicle-spread{
+  clip-path:inset(0 0 0 0);
+}
+.chronicle-modal .chronicle-toolbar{
+  opacity:0;visibility:hidden;pointer-events:none!important;
+  transform:translateY(10px);
+  transition:opacity .38s ease,transform .38s ease,visibility .38s!important;
+}
+.chronicle-modal.is-ready .chronicle-toolbar{
+  opacity:1;visibility:visible;pointer-events:auto!important;
+  transform:translateY(0);
+}
+@media(max-width:760px){
+  .chronicle-trigger{
+    width:140px!important;height:194px!important;
+    right:20px!important;bottom:21px!important;
+  }
+  .chronicle-ghost{right:auto!important;bottom:auto!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .chronicle-book .chronicle-cover,.chronicle-book .chronicle-spread,
+  .chronicle-modal .chronicle-toolbar{transition:none!important}
+}
