@@ -8,10 +8,9 @@
   const root = $('tomeRoot'), shell = $('tomeShell'), cover = $('tomeCover');
   const left = $('tomeLeftPage'), right = $('tomeRightPage');
   const shade = $('tomeShade'), closeButton = $('tomeClose');
-  const spread = $('tomeSpread'), toolbar = $('tomeToolbar');
-  const prev = $('tomePrev'), next = $('tomeNext'), indicator = $('tomeProgress');
+  const spread = $('tomeSpread');
   const turn = $('tomeTurning'), turnFront = $('tomeTurnFront'), turnBack = $('tomeTurnBack');
-  if (![root,shell,cover,left,right,shade,closeButton,prev,next,indicator,turn,turnFront,turnBack,spread,toolbar].every(Boolean)) {
+  if (![root,shell,cover,left,right,shade,closeButton,turn,turnFront,turnBack,spread].every(Boolean)) {
     console.error('Tome HTML incomplete'); return;
   }
   let sessions = [], notesBySession = {}, pages = [], spreadIndex = 0, busy = false;
@@ -20,7 +19,6 @@
   const drafts = new Map();
   let state = 'closed';
   spread.inert=true;
-  toolbar.inert=true;
   closeButton.disabled=true;
   const mobile = () => window.matchMedia('(max-width:740px)').matches;
   const reducedMotion = () => window.matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -69,7 +67,7 @@
     cover.disabled = false;
     cover.setAttribute('aria-expanded','false');
     spread.setAttribute('aria-hidden','true');
-    spread.inert=true;toolbar.inert=true;
+    spread.inert=true;
     closeButton.disabled=true;
     shade.setAttribute('aria-hidden','true');
   }
@@ -90,7 +88,7 @@
     await sleep(reducedMotion()?0:1840);
     if (token !== motionToken) return;
     state = 'open'; root.dataset.state = 'open';
-    spread.inert=false;toolbar.inert=false;
+    spread.inert=false;
     spread.setAttribute('aria-hidden','false');
     closeButton.disabled=false;
     closeButton.focus();
@@ -101,7 +99,7 @@
     const token = ++motionToken;
     busy = true;
     state = 'closing'; root.dataset.state = 'closing';
-    spread.inert=true;toolbar.inert=true;
+    spread.inert=true;
     spread.setAttribute('aria-hidden','true');
     closeButton.disabled=true;
     await sleep(reducedMotion()?0:1780);
@@ -137,8 +135,9 @@
     probe.setAttribute('aria-hidden','true');
     probe.appendChild(pageHead('FOLIO'));
     const scroll=el('div','tome-scroll');
-    scroll.append(el('h2','tome-heading',session.label||'Session '+(index+1)),
-      el('p','tome-date',dateLabel(session.started_at)));
+    const heading=el('h2','tome-heading',session.label||'Session '+(index+1));
+    const date=el('p','tome-date',dateLabel(session.started_at));
+    scroll.append(heading,date);
     const list=el('ul','tome-note-list');scroll.appendChild(list);
     probe.appendChild(scroll);
     if(isLatest){
@@ -147,7 +146,7 @@
       probe.appendChild(footer);
     } else probe.appendChild(el('p','tome-sealed','✦ This chapter is sealed.'));
     shell.appendChild(probe);
-    return {probe,scroll,list};
+    return {probe,scroll,list,heading,date};
   }
   function hasOverflow(scroll) {
     const available = scroll.clientHeight || Math.max(160,(shell.clientHeight || 650)-250);
@@ -180,13 +179,19 @@
   function paginateSession(session,index) {
     const notes=notesBySession[session.id]||[];
     const isLatest=index===sessions.length-1;
-    const {probe,scroll,list}=makeProbe(session,index,isLatest);
+    const {probe,scroll,list,heading,date}=makeProbe(session,index,isLatest);
     const chunks=[];
     let chunk=[];
     function finishChunk() {
       chunks.push(chunk);
       chunk=[];
       list.replaceChildren();
+      // The next sheet is a continuation. Removing the title/date *before*
+      // measuring its notes gives those notes the full usable page height.
+      if(chunks.length===1){
+        heading.remove();
+        date.remove();
+      }
     }
     if(!notes.length){finishChunk();}
     else for(const note of notes){
@@ -305,9 +310,10 @@
     target.appendChild(pageHead('FOLIO '+String(sessionIndex+1).padStart(2,'0')+
       (parts>1?' · '+part+'/'+parts:'')));
     const scroll=el('div','tome-scroll');
-    scroll.append(el('h2','tome-heading',(session.label||'Session '+(sessionIndex+1))+
-      (part>1?' · continued':'')),
-      el('p','tome-date',dateLabel(session.started_at)));
+    if(part===1){
+      scroll.append(el('h2','tome-heading',session.label||'Session '+(sessionIndex+1)),
+        el('p','tome-date',dateLabel(session.started_at)));
+    }
     if(!fragments.length)scroll.append(el('p','tome-empty','No notes have been recorded for this session.'));
     else {
       const list=el('ul','tome-note-list');
@@ -320,10 +326,10 @@
       const input=el('input');input.type='text';input.placeholder='Inscribe a memory…';
       input.maxLength=200;input.required=true;input.value=drafts.get(session.id)||'';
       input.setAttribute('aria-label','Write a note for '+(session.label||'Session '+(sessionIndex+1)));
-      if(staticOnly){input.disabled=true;}
+      if(staticOnly){input.tabIndex=-1;}
       else input.addEventListener('input',()=>drafts.set(session.id,input.value));
       const button=el('button','','Inscribe');button.type='submit';
-      if(staticOnly)button.disabled=true;
+      if(staticOnly)button.tabIndex=-1;
       form.append(input,button);
       if(!staticOnly)form.addEventListener('submit',async event=>{
         event.preventDefault();
@@ -363,33 +369,57 @@
     if(mobile())return {left:null,right:index};
     return {left:index*2,right:index*2+1};
   }
+  function updateNavigation() {
+    const canBack=spreadIndex>0, canForward=spreadIndex<totalSpreads()-1;
+    root.dataset.canPrev=String(canBack);
+    root.dataset.canNext=String(canForward);
+    // The paper itself serves as the navigation surface; keyboard users may
+    // focus either leaf and press Enter/Space, or use the arrow keys globally.
+    left.tabIndex=(!mobile()&&canBack)?0:-1;
+    right.tabIndex=(canForward||mobile()&&canBack)?0:-1;
+    left.setAttribute('aria-description',canBack?
+      'Click this page or press Enter to turn backward.':'Beginning of the book.');
+    right.setAttribute('aria-description',canForward?
+      'Click this page or press Enter to turn forward.':
+      (mobile()&&canBack?'Tap the left half to turn backward.':'End of the book.'));
+  }
   function render(){
     spreadIndex=Math.max(0,Math.min(spreadIndex,totalSpreads()-1));
     const pair=pagesForSpread(spreadIndex);
     if(!mobile())renderPage(left,pages[pair.left]);
     renderPage(right,pages[pair.right]);
-    prev.disabled=busy||spreadIndex===0;
-    next.disabled=busy||spreadIndex>=totalSpreads()-1;
-    const label=index=>{
-      const page=pages[index];
-      if(!page)return '';
-      if(page.kind==='contents')return 'Contents'+(page.parts>1?' '+page.part+'/'+page.parts:'');
-      return (page.session.label||'Session '+(page.sessionIndex+1))+
-        (page.parts>1?' '+page.part+'/'+page.parts:'');
-    };
-    indicator.textContent=[mobile()?null:pair.left,pair.right]
-      .filter(i=>i!==null&&pages[i]).map(label).join(' · ')||'Final leaf';
+    updateNavigation();
   }
-
   function animationFace(target,page,side){
     target.classList.add('tome-page');
     target.classList.toggle('tome-page--left',side==='left');
     target.classList.toggle('tome-page--right',side==='right');
     renderPage(target,page,true);
   }
-  // The real contents of the two sides of a turning page are drawn *before*
-  // movement starts. Adjacent leaves are changed while hidden under the moving
-  // paper. This prevents the mid-flip text snapping that the old code had.
+  // Wait for the browser's *actual* animation end rather than a fixed delay.
+  // The page remains in its 180-degree resting pose while we render the
+  // destination underneath, then gently fades away. No transform snap.
+  function waitForFlip(){
+    if(reducedMotion())return Promise.resolve();
+    return new Promise(resolve=>{
+      let finished=false;
+      const complete=()=>{
+        if(finished)return;
+        finished=true;
+        turn.removeEventListener('animationend',onEnd);
+        clearTimeout(timer);
+        resolve();
+      };
+      const onEnd=event=>{if(event.target===turn)complete();};
+      const timer=setTimeout(complete,1550); // fallback if browser hides the animation
+      turn.addEventListener('animationend',onEnd);
+    });
+  }
+  function nextPaint(){
+    return new Promise(resolve=>{
+      requestAnimationFrame(()=>requestAnimationFrame(resolve));
+    });
+  }
   async function changeSpread(target){
     if(state!=='open'||busy||target===spreadIndex||
       target<0||target>=totalSpreads())return;
@@ -397,7 +427,7 @@
     const current=pagesForSpread(spreadIndex);
     const destination=pagesForSpread(target);
     busy=true;
-    prev.disabled=next.disabled=true;
+    updateNavigation();
     const turnId=++activeTurn;
     turn.className='tome-turn is-visible '+(direction>0?'is-next':'is-prev');
     if(mobile()){
@@ -406,23 +436,29 @@
     }else if(direction>0){
       animationFace(turnFront,pages[current.right],'right');
       animationFace(turnBack,pages[destination.left],'left');
-      renderPage(right,pages[destination.right]); // hidden behind the turning leaf
+      renderPage(right,pages[destination.right]);
     }else{
       animationFace(turnFront,pages[current.left],'left');
       animationFace(turnBack,pages[destination.right],'right');
-      renderPage(left,pages[destination.left]); // revealed beneath the turning leaf
+      renderPage(left,pages[destination.left]);
     }
+    // Starting at 0 degrees shows the old page; at 180 degrees the back is
+    // the exact destination leaf (not a generic title/placeholder).
     void turn.offsetWidth;
     turn.classList.add('is-flipping');
-    await sleep(reducedMotion()?0:1080);
+    await waitForFlip();
     if(turnId!==activeTurn)return;
     spreadIndex=target;
-    if(mobile())renderPage(right,pages[destination.right]);
-    else if(direction>0)renderPage(left,pages[destination.left]);
-    else renderPage(right,pages[destination.right]);
+    render(); // final pages are painted while the turning sheet still covers them
+    if(!reducedMotion()){
+      await nextPaint();
+      turn.classList.add('is-settling');
+      await sleep(180);
+    }
+    if(turnId!==activeTurn)return;
     turn.className='tome-turn';
     busy=false;
-    render(); // rebind real inputs and restore independent focusable controls
+    updateNavigation();
     if(queuedContent){
       const update=queuedContent;
       queuedContent=null;
@@ -432,6 +468,26 @@
       reflow();
     }
   }
+
+  function pageClick(direction,event){
+    if(state!=='open'||busy||event.defaultPrevented)return;
+    if(event.button!==undefined&&event.button!==0)return;
+    if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+    // Never turn the page while the user is entering notes, selecting text,
+    // following a chapter link, or using a real control.
+    if(event.target.closest?.('a,button,input,textarea,select,label,[contenteditable], [data-tome-no-turn]'))return;
+    if(window.getSelection?.()?.toString().trim())return;
+    if(mobile() && direction===1){
+      // On narrow devices the single visible parchment has two tappable
+      // zones: its left half goes back, its right half advances.
+      const rect=right.getBoundingClientRect();
+      direction=event.clientX<rect.left+rect.width/2?-1:1;
+    }
+    changeSpread(spreadIndex+direction);
+  }
+  left.addEventListener('click',event=>pageClick(-1,event));
+  right.addEventListener('click',event=>pageClick(1,event));
+
   root.addEventListener('keydown',event=>{
     if(state!=='open')return;
     if(event.key==='Escape'){event.preventDefault();close();return;}
@@ -439,13 +495,16 @@
     if(tag==='INPUT'||tag==='TEXTAREA')return;
     if(event.key==='ArrowRight'||event.key==='ArrowLeft'){
       event.preventDefault();changeSpread(spreadIndex+(event.key==='ArrowRight'?1:-1));
+      return;
+    }
+    if((event.key==='Enter'||event.key===' ')&&(event.target===left||event.target===right)){
+      event.preventDefault();
+      changeSpread(spreadIndex+(event.target===left?-1:1));
     }
   });
   cover.addEventListener('click',open);
   closeButton.addEventListener('click',close);
   shade.addEventListener('click',close);
-  prev.addEventListener('click',()=>changeSpread(spreadIndex-1));
-  next.addEventListener('click',()=>changeSpread(spreadIndex+1));
 
   function reflow(options={}){
     const previous=pages[mobile()?spreadIndex:Math.min(pages.length-1,spreadIndex*2+1)];
