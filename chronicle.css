@@ -433,3 +433,24 @@ margin-top:13px;background:linear-gradient(90deg,#9f7542,transparent)}
   .chronicle-book .chronicle-cover,.chronicle-book .chronicle-spread,
   .chronicle-modal .chronicle-toolbar{transition:none!important}
 }
+
+/* The flight clone is intentionally NOT a .chronicle-trigger: its left/top/
+   dimensions must remain animatable by Web Animations (no !important conflict). */
+.chronicle-ghost{
+  padding:0;border:4px ridge #ad8345;border-left:9px solid #2a130f;
+  border-right:17px solid #26100e;border-radius:8px 16px 16px 8px;
+  background:
+    radial-gradient(ellipse at 48% 32%,#9a765039,transparent 60%),
+    repeating-linear-gradient(105deg,transparent 0 11px,#00000013 12px 13px),
+    radial-gradient(circle at 50% 42%,#764432,#3a1a16 80%);
+  color:#eed7a5;font-family:'Cinzel',serif;text-align:center;
+  text-shadow:0 2px 3px #180905;letter-spacing:.09em;
+}
+.chronicle-ghost::before{
+  content:"";position:absolute;inset:20px;border:2px solid #c69a5b;
+  border-radius:3px;pointer-events:none;
+}
+.chronicle-ghost::after{
+  content:"";position:absolute;right:3px;top:8px;bottom:8px;width:10px;
+  border-left:2px solid #e1b56d;background:#29130e;
+}
