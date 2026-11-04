@@ -261,8 +261,10 @@ window.addEventListener('ff:tome:save-note',async event => {
       type:'note',note_text:text.trim(),
     });
     if (insertError) throw insertError;
-    await refreshNotebook();
+    // Signal success first so the input draft clears before refreshed
+    // session markup is rendered; otherwise a saved note reappears in the field.
     resolve({ok:true});
+    await refreshNotebook();
   } catch (error) {
     console.error('Could not save tome note',error);
     resolve({ok:false,error:'The note could not be saved. Please try again.'});
