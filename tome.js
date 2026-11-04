@@ -8,14 +8,18 @@
   const root = $('tomeRoot'), shell = $('tomeShell'), cover = $('tomeCover');
   const left = $('tomeLeftPage'), right = $('tomeRightPage');
   const shade = $('tomeShade'), closeButton = $('tomeClose');
+  const spread = $('tomeSpread'), toolbar = $('tomeToolbar');
   const prev = $('tomePrev'), next = $('tomeNext'), indicator = $('tomeProgress');
   const turn = $('tomeTurning'), turnFront = $('tomeTurnFront'), turnBack = $('tomeTurnBack');
-  if (![root,shell,cover,left,right,shade,closeButton,prev,next,indicator,turn,turnFront,turnBack].every(Boolean)) {
+  if (![root,shell,cover,left,right,shade,closeButton,prev,next,indicator,turn,turnFront,turnBack,spread,toolbar].every(Boolean)) {
     console.error('Tome HTML incomplete'); return;
   }
   let sessions = [], notesBySession = {}, spreadIndex = 0, busy = false;
   let activeTurn = 0, motionToken = 0;
   let state = 'closed';
+  spread.inert=true;
+  toolbar.inert=true;
+  closeButton.disabled=true;
   const mobile = () => window.matchMedia('(max-width:740px)').matches;
   const reducedMotion = () => window.matchMedia('(prefers-reduced-motion:reduce)').matches;
   const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
@@ -59,6 +63,10 @@
     state = 'closed';
     document.body.classList.remove('book-open');
     cover.disabled = false;
+    cover.setAttribute('aria-expanded','false');
+    spread.setAttribute('aria-hidden','true');
+    spread.inert=true;toolbar.inert=true;
+    closeButton.disabled=true;
     shade.setAttribute('aria-hidden','true');
   }
 
@@ -68,6 +76,7 @@
     state = 'moving'; root.dataset.state = 'moving';
     document.body.classList.add('book-open');
     cover.disabled = true;
+    cover.setAttribute('aria-expanded','true');
     shade.setAttribute('aria-hidden','false');
     spreadIndex = 0;
     render();
@@ -77,6 +86,9 @@
     await sleep(reducedMotion()?0:1780);
     if (token !== motionToken) return;
     state = 'open'; root.dataset.state = 'open';
+    spread.inert=false;toolbar.inert=false;
+    spread.setAttribute('aria-hidden','false');
+    closeButton.disabled=false;
     closeButton.focus();
   }
 
@@ -85,6 +97,9 @@
     const token = ++motionToken;
     busy = true;
     state = 'closing'; root.dataset.state = 'closing';
+    spread.inert=true;toolbar.inert=true;
+    spread.setAttribute('aria-hidden','true');
+    closeButton.disabled=true;
     await sleep(reducedMotion()?0:1780);
     if (token !== motionToken) return;
     state = 'returning'; root.dataset.state = 'returning';
